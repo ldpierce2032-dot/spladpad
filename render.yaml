@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: spladpad-online
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_USERNAMES
+        value: landon,spladpad
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: spladpad-data
+      mountPath: /data
+      sizeGB: 1
