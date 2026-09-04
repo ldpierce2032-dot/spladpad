@@ -2435,112 +2435,59 @@ function finishLogin(account) {
 
 
 /* =========================================
-   AVATAR COLORS
+   AVATAR COLORS + PROFILE SAVING
    ========================================= */
 
 function changeAvatarColor(color) {
-
-    const current =
-        localStorage.getItem(
-            "spladpad_current_user"
-        );
-
+    const current = localStorage.getItem("spladpad_current_user");
 
     if (!current) {
-
-        alert(
-            "Please sign in first."
-        );
-
+        alert("Please sign in first.");
         return;
     }
 
+    const accounts = getAccounts();
+    const account = accounts[current];
 
-    const accounts =
-        getAccounts();
+    if (!account) {
+        alert("Please sign in again.");
+        return;
+    }
 
+    account.avatarColor = color;
 
-    accounts[current].avatarColor =
-        color;
-
-
+    /* Save immediately. saveAccounts() also syncs with the server
+       when the user has an active server token. */
     saveAccounts(accounts);
 
-
-    applyAvatarColor(color);
+    /* Apply the selected color immediately. */
+    applyAvatarColor(color, true);
 }
 
 
-function applyAvatarColor(color) {
-
-    const current = localStorage.getItem("spladpad_current_user");
-    const accounts = getAccounts();
-    const currentAccount = current ? accounts[current] : null;
-
-    const images =
-        document.querySelectorAll(
-            "#home-avatar img, #profile-avatar img, #character-image, #other-avatar, .player-avatar img"
-        );
-
+function applyAvatarColor(color, forceColor) {
+    const images = document.querySelectorAll(
+        "#home-avatar img, #profile-avatar img, #character-image, #other-avatar, .player-avatar img"
+    );
 
     let filter = "none";
 
-    // New starter players use the exact blue Doge Ball character avatar.
-    if (currentAccount && currentAccount.avatarType === "starter") {
-        images.forEach(function(img) {
-            img.style.filter = "none";
-        });
-        return;
-    }
-
-
     if (color === "red") {
-
-        filter =
-            "sepia(1) saturate(5) hue-rotate(315deg)";
-
+        filter = "sepia(1) saturate(5) hue-rotate(315deg)";
+    } else if (color === "green") {
+        filter = "sepia(1) saturate(5) hue-rotate(70deg)";
+    } else if (color === "purple") {
+        filter = "sepia(1) saturate(5) hue-rotate(240deg)";
+    } else if (color === "yellow") {
+        filter = "sepia(1) saturate(5) hue-rotate(5deg)";
+    } else if (color === "black") {
+        filter = "brightness(.45)";
+    } else if (color === "blue") {
+        filter = "sepia(.3) saturate(3) hue-rotate(170deg)";
     }
-
-    else if (color === "green") {
-
-        filter =
-            "sepia(1) saturate(5) hue-rotate(70deg)";
-
-    }
-
-    else if (color === "purple") {
-
-        filter =
-            "sepia(1) saturate(5) hue-rotate(240deg)";
-
-    }
-
-    else if (color === "yellow") {
-
-        filter =
-            "sepia(1) saturate(5) hue-rotate(5deg)";
-
-    }
-
-    else if (color === "black") {
-
-        filter =
-            "brightness(.45)";
-
-    }
-
-    else if (color === "blue") {
-
-        filter =
-            "sepia(.3) saturate(3) hue-rotate(170deg)";
-
-    }
-
 
     images.forEach(function(img) {
-
         img.style.filter = filter;
-
     });
 }
 
@@ -2550,46 +2497,41 @@ function applyAvatarColor(color) {
    ========================================= */
 
 function saveProfile() {
-
-    const current =
-        localStorage.getItem(
-            "spladpad_current_user"
-        );
-
+    const current = localStorage.getItem("spladpad_current_user");
 
     if (!current) {
-
-        alert(
-            "Please sign in first."
-        );
-
+        alert("Please sign in first.");
         return;
     }
 
+    const accounts = getAccounts();
+    const account = accounts[current];
 
-    const accounts =
-        getAccounts();
+    if (!account) {
+        alert("Please sign in again.");
+        return;
+    }
 
+    const bioInput = document.getElementById("bio-input");
+    if (bioInput) {
+        account.bio = bioInput.value.trim();
+    }
 
-    accounts[current].bio =
-        document
-            .getElementById("bio-input")
-            .value
-            .trim();
-
+    /* Preserve the selected color if one has already been chosen. */
+    if (!account.avatarColor) {
+        account.avatarColor = "blue";
+    }
 
     saveAccounts(accounts);
 
+    const profileBio = document.getElementById("profile-bio");
+    if (profileBio) {
+        profileBio.textContent = account.bio;
+    }
 
-    document
-        .getElementById("profile-bio")
-        .textContent =
-        accounts[current].bio;
+    applyAvatarColor(account.avatarColor, true);
 
-
-    alert(
-        "Profile saved!"
-    );
+    alert("Profile saved!");
 }
 
 
