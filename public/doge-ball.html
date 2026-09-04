@@ -458,6 +458,7 @@ let keys = {};
 let lastInput = 0;
 
 let lastPresence = 0;
+let loopRunning = false;
 
 
 /* -------------------------
@@ -762,9 +763,10 @@ socket.addEventListener(
       ).textContent =
         "Dodge Ball started!";
 
-      requestAnimationFrame(
-        loop
-      );
+      if(!loopRunning){
+        loopRunning = true;
+        requestAnimationFrame(loop);
+      }
 
       return;
 
@@ -1395,12 +1397,9 @@ function throwBall(){
   }
 
 
-  if(
-    state.ball.owner !== null
-  ){
-
+  /* You can only throw when you actually have the ball. */
+  if(state.ball.owner !== id){
     return;
-
   }
 
 
@@ -1527,6 +1526,32 @@ function hostUpdate(){
   const ball =
     state.ball;
 
+  /* Pick up the ball when an alive player reaches it. */
+  if(ball.owner === null){
+    for(const playerId of Object.keys(state.players || {})){
+      const player = state.players[playerId];
+      if(!player || !player.alive) continue;
+      if(Math.hypot(ball.x-player.x, ball.y-player.y) < 38){
+        ball.owner = playerId;
+        ball.vx = 0;
+        ball.vy = 0;
+        break;
+      }
+    }
+  }
+
+  /* While held, keep the ball attached to its owner. */
+  if(ball.owner && Math.abs(ball.vx) + Math.abs(ball.vy) === 0){
+    const holder = state.players[ball.owner];
+    if(holder && holder.alive){
+      ball.x = holder.x;
+      ball.y = holder.y - 24;
+    }else{
+      ball.owner = null;
+      ball.x = 500;
+      ball.y = 460;
+    }
+  }
 
   if(
     Math.abs(ball.vx) +
@@ -1864,7 +1889,7 @@ function drawPlayer(p){
 
   const v = visualPlayers[p.id] || (visualPlayers[p.id] = {x:p.x, y:p.y});
   const isMe = p.id === id;
-  const smoothing = isMe ? 1 : 0.24;
+  const smoothing = isMe ? 1 : 0.22;
   v.x += (p.x - v.x) * smoothing;
   v.y += (p.y - v.y) * smoothing;
 
@@ -1959,9 +1984,8 @@ function draw(){
 function loop(){
 
   if(!gameStarted){
-
+    loopRunning = false;
     return;
-
   }
 
 
