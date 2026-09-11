@@ -953,3 +953,345 @@ textarea {
 
     margin-bottom: 25px;
       }            
+.avatar-circle {
+    position: relative;
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #54bfff;
+    border: 3px solid #d8f3ff;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+}
+
+.avatar-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.greeting-text {
+    margin-left: 15px;
+    font-size: 25px;
+    font-weight: bold;
+    color: white;
+}
+
+
+/* =========================
+   3D AVATAR + AIR SPARKLES
+   ========================= */
+
+.character-preview,
+.avatar-circle,
+.profile-avatar,
+.player-avatar {
+    position: relative;
+    perspective: 700px;
+    transform-style: preserve-3d;
+}
+
+.character-preview {
+    box-shadow:
+        inset 0 0 25px rgba(0,0,0,.28),
+        0 10px 22px rgba(0,0,0,.28);
+}
+
+.character-preview img,
+.avatar-circle img,
+.profile-avatar img,
+.player-avatar img {
+    position: relative;
+    z-index: 3;
+
+    transform:
+        translateZ(18px)
+        rotateX(1deg);
+
+    filter:
+        drop-shadow(7px 10px 4px rgba(0,0,0,.34));
+
+    transition:
+        filter .2s,
+        transform .25s;
+}
+
+.character-preview:hover img {
+    transform:
+        translateZ(28px)
+        rotateX(2deg)
+        rotateY(-2deg);
+}
+
+.character-preview::after,
+.avatar-circle::after,
+.profile-avatar::after,
+.player-avatar::after {
+    content: "";
+
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    bottom: 7%;
+
+    height: 13%;
+
+    border-radius: 50%;
+
+    background: rgba(0,0,0,.25);
+
+    filter: blur(8px);
+
+    transform:
+        translateZ(0)
+        rotateX(65deg);
+
+    z-index: 1;
+}
+
+.air-sparkles {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.air-sparkle {
+    position: absolute;
+
+    width: 18px;
+    height: 18px;
+
+    opacity: 0;
+
+    transform:
+        scale(.2)
+        rotate(45deg);
+
+    background: #fff;
+
+    box-shadow:
+        0 0 10px #fff,
+        0 0 24px rgba(255,255,255,.95);
+
+    clip-path:
+        polygon(
+            50% 0%,
+            62% 38%,
+            100% 50%,
+            62% 62%,
+            50% 100%,
+            38% 62%,
+            0% 50%,
+            38% 38%
+        );
+
+    animation:
+        airSparkle 2.8s ease-out forwards;
+}
+
+@keyframes airSparkle {
+    0% {
+        opacity: 0;
+        transform:
+            translate3d(0, 22px, 0)
+            scale(.15)
+            rotate(0deg);
+    }
+
+    12% {
+        opacity: 1;
+        transform:
+            translate3d(0, 12px, 12px)
+            scale(.9)
+            rotate(25deg);
+    }
+
+    55% {
+        opacity: .95;
+        transform:
+            translate3d(var(--dx), -35px, 25px)
+            scale(1.45)
+            rotate(90deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform:
+            translate3d(
+                calc(var(--dx) * 1.35),
+                -85px,
+                35px
+            )
+            scale(.2)
+            rotate(180deg);
+    }
+}
+
+
+/* =========================
+   CHARACTER EDITOR
+   ========================= */
+
+.character-editor {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.character-preview {
+    position: relative;
+
+    width: 230px;
+    height: 300px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 10px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7dd4ff,
+            #2584bd
+        );
+
+    border: 2px solid #65bce8;
+    overflow: hidden;
+}
+
+.character-preview img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    transition: filter .2s;
+}
+
+.character-controls {
+    flex: 1;
+    min-width: 220px;
+}
+
+.color-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.color-btn {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+    border: 3px solid white;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 5px rgba(0,0,0,.3);
+}
+
+.color-blue {
+    background: #159fe0;
+}
+
+.color-red {
+    background: #ed4055;
+}
+
+.color-green {
+    background: #31bd67;
+}
+
+.color-purple {
+    background: #9b5de5;
+}
+
+.color-yellow {
+    background: #f2c94c;
+}
+
+.color-black {
+    background: #222;
+}
+
+
+/* =========================
+   PROFILE
+   ========================= */
+
+.profile-avatar {
+    position: relative;
+
+    width: 150px;
+    height: 180px;
+
+    background: #6bcfff;
+
+    border-radius: 10px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    overflow: hidden;
+
+    margin-bottom: 15px;
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+/* =========================
+   PLAYER SEARCH
+   ========================= */
+
+.player-search-row {
+    display: flex;
+
+    gap: 10px;
+}
+
+.player-search-row input {
+    flex: 1;
+
+    margin: 0;
+}
+
+.player-card {
+    margin-top: 15px;
+
+    padding: 15px;
+
+    border-radius: 7px;
+
+    background: white;
+
+    border:
+        1px solid #8bc8e8;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    color: #123d5f;
+
+    cursor: pointer;
+
+    transition: .15s;
+}
+
+.player-card:hover {
+    background: #e5f6ff;
+}
