@@ -1562,7 +1562,7 @@ textarea {
 
         <div
             class="side-item"
-            onclick="showPage('build',this)"
+            onclick="openBuildStudio(this)"
         >
             <span class="nav-icon icon-build"></span>Build Studio
         </div>
@@ -2667,6 +2667,13 @@ function saveProfile() {
     alert(
         "Profile saved!"
     );
+}
+
+
+function openBuildStudio(clickedItem) {
+    showPage("build", clickedItem);
+    const worldsBox = document.getElementById("splad-worlds");
+    if (worldsBox && typeof renderWorlds === "function") renderWorlds();
 }
 
 
@@ -4348,7 +4355,7 @@ refreshAllBadgeData();
 .build-main{display:grid;grid-template-columns:210px minmax(420px,1fr) 250px;gap:12px;min-height:0;flex:1}.build-panel{background:#071a31;border:2px solid #145b92;border-radius:12px;overflow:auto;padding:12px}.build-panel h3{margin:0 0 10px;color:#fff;font-size:15px}.build-section{margin-bottom:16px}.build-list{display:grid;gap:7px}.build-item{background:#0b2948;border:1px solid #206797;color:#fff;border-radius:7px;padding:8px;cursor:pointer;font-weight:700;text-align:left}.build-item:hover{background:#10446f}.build-item small{display:block;color:#8ed5ff;font-weight:500;margin-top:2px}
 .build-workspace{position:relative;min-width:0;min-height:0;background:#08203a;border:2px solid #1688e8;border-radius:12px;overflow:hidden}.build-canvas{width:100%;height:100%;display:block;background:linear-gradient(#dff4ff,#b9e3f7)}.build-status{position:absolute;left:10px;bottom:10px;background:rgba(4,18,34,.86);color:#fff;border:1px solid #3b9fe5;border-radius:7px;padding:6px 9px;font-size:12px}.build-help{position:absolute;right:10px;bottom:10px;background:rgba(4,18,34,.86);color:#bfe7ff;border:1px solid #3b9fe5;border-radius:7px;padding:6px 9px;font-size:11px}
 .build-prop{display:grid;grid-template-columns:1fr 1fr;gap:7px}.build-prop label{font-size:11px;color:#9bdcff}.build-prop input,.build-prop select,.build-script textarea{width:100%;box-sizing:border-box;background:#061426;border:1px solid #267db5;color:#fff;border-radius:6px;padding:7px}.build-prop .wide{grid-column:1/-1}.build-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.build-action{border:0;background:#1688e8;color:#fff;border-radius:7px;padding:8px;font-weight:900;cursor:pointer}.build-action.danger{background:#9d3030}.build-action.secondary{background:#14527d}
-.build-worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}.build-world-card{background:#08213c;border:2px solid #196ea8;border-radius:10px;overflow:hidden}.build-thumb{width:100%;height:120px;object-fit:cover;background:#bfe8ff;display:block}.build-world-body{padding:10px}.build-world-title{font-weight:900;color:#fff}.build-world-meta{font-size:11px;color:#8fcdf2;margin:4px 0 9px}.build-world-buttons{display:flex;gap:6px}.build-world-buttons button{flex:1}.build-empty{padding:20px;text-align:center;color:#9acbe8;border:1px dashed #2d719e;border-radius:10px}
+.build-worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}.build-world-card{background:#08213c;border:2px solid #196ea8;border-radius:10px;overflow:hidden}.build-thumb{width:100%;height:120px;object-fit:cover;background:#bfe8ff;display:block}.build-world-body{padding:10px}.build-world-title{font-weight:900;color:#fff}.build-world-meta{font-size:11px;color:#8fcdf2;margin:4px 0 9px}.build-world-buttons{display:flex;gap:6px}.build-world-buttons button{flex:1}.build-empty{padding:20px;text-align:center;color:#9acbe8;border:1px dashed #2d719e;border-radius:10px}.build-empty-slot{min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#9acbe8;font:inherit}.build-empty-slot:hover{background:#0d2d4e;border-color:#2ba1ee}.build-empty-plus{font-size:54px;line-height:1;color:#28a8ff;font-weight:300;margin-bottom:8px}.build-world-open{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}.build-world-open-hint{font-size:11px;color:#28a8ff;font-weight:900;margin-top:6px}
 .build-modal{position:fixed;inset:0;background:rgba(0,8,18,.78);display:none;align-items:center;justify-content:center;z-index:9999;padding:18px}.build-modal.open{display:flex}.build-modal-card{width:min(700px,96vw);max-height:90vh;overflow:auto;background:#071a31;border:2px solid #1688e8;border-radius:14px;padding:16px;box-shadow:0 20px 70px rgba(0,0,0,.55)}.build-modal-title{font-size:21px;font-weight:900;color:#fff;margin-bottom:12px}.build-script-tabs{display:flex;gap:6px;margin-bottom:8px}.build-script-tab{background:#0c3155;color:#fff;border:1px solid #287fb5;border-radius:6px;padding:7px 12px;font-weight:800;cursor:pointer}.build-script-tab.active{background:#1688e8}.build-script textarea{height:260px;resize:vertical;font-family:monospace;font-size:12px}.build-preview{margin-top:8px;border:1px solid #277fb5;border-radius:7px;background:#fff;height:180px;width:100%}
 @media(max-width:1050px){.build-main{grid-template-columns:170px minmax(300px,1fr)}.build-main>.build-panel:last-child{grid-column:1/-1;max-height:260px}}@media(max-width:700px){.build-main{grid-template-columns:1fr}.build-main>.build-panel{max-height:220px}.build-workspace{min-height:430px}.build-studio-wrap{height:auto}}
 </style>
@@ -4646,8 +4653,18 @@ refreshAllBadgeData();
   function defaultWorld(){return {id:uid(),name:'My Spladpad World',published:false,thumbnail:'',scripts:{html:'<h1>My Spladpad World</h1><p>Welcome to my world!</p>',python:'# Spladpad Python script\nprint("Hello from Spladpad Build!")'},objects:[{id:uid(),type:'baseplate',x:0,y:360,w:900,h:90,color:'#1987d0',anchored:true,label:'Base Plate'},{id:uid(),type:'block',x:350,y:270,w:150,h:80,color:'#1688e8',anchored:true,label:'Block'}],connections:[]}}
   function renderWorlds(){
     const box=$('splad-worlds'); if(!box)return; const a=worlds();
-    if(!a.length){box.innerHTML='<div class="build-empty">No worlds yet.<br><br>Click <b>CREATE</b> to make your first Spladpad world.</div>';return}
-    box.innerHTML=a.map(w=>`<div class="build-world-card"><img class="build-thumb" src="${w.thumbnail||'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250"><rect width="500" height="250" fill="#b9e3f7"/><rect y="180" width="500" height="70" fill="#1987d0"/><rect x="210" y="115" width="90" height="65" rx="8" fill="#1688e8"/></svg>') }"><div class="build-world-body"><div class="build-world-title">${esc(w.name)}</div><div class="build-world-meta">${w.published?'PUBLISHED':'NOT PUBLISHED'} • ${w.objects.length} objects</div><div class="build-world-buttons"><button class="build-action" onclick="spladBuildEdit('${w.id}')">EDIT</button><button class="build-action danger" onclick="spladBuildDeleteWorld('${w.id}')">DELETE</button></div></div></div>`).join('')
+    const slots=Array.from({length:3},(_,i)=>a[i]||null);
+    box.innerHTML=slots.map((w,i)=>{
+      if(!w){
+        return `<button type="button" class="build-world-card build-empty-slot" onclick="spladBuildCreateWorld()" aria-label="Create game in slot ${i+1}">
+          <div class="build-empty-plus">+</div>
+          <div class="build-world-title">EMPTY GAME SLOT</div>
+          <div class="build-world-meta">Click here to create your game</div>
+        </button>`;
+      }
+      const fallback='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250"><rect width="500" height="250" fill="#b9e3f7"/><rect y="180" width="500" height="70" fill="#1987d0"/><rect x="210" y="115" width="90" height="65" rx="8" fill="#1688e8"/></svg>');
+      return `<div class="build-world-card"><button type="button" class="build-world-open" onclick="spladBuildEdit('${w.id}')"><img class="build-thumb" src="${w.thumbnail||fallback}" alt="${esc(w.name)} thumbnail"><div class="build-world-body"><div class="build-world-title">${esc(w.name)}</div><div class="build-world-meta">${w.published?'PUBLISHED':'NOT PUBLISHED'} • ${w.objects.length} objects</div><div class="build-world-open-hint">CLICK TO OPEN BUILD AREA</div></div></button><div class="build-world-buttons"><button class="build-action" onclick="spladBuildEdit('${w.id}')">EDIT</button><button class="build-action danger" onclick="spladBuildDeleteWorld('${w.id}')">DELETE</button></div></div>`;
+    }).join('');
   }
   function resize(){const c=$('splad-build-canvas'); if(!c)return; const r=c.getBoundingClientRect(); const d=window.devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d; const ctx=c.getContext('2d');ctx.setTransform(d,0,0,d,0,0);draw()}
   function worldToScreen(o){const c=$('splad-build-canvas'),r=c.getBoundingClientRect();return {x:r.width/2+(o.x-(current.world?.objects.find(z=>z.type==='baseplate')?.x||0))/1.2,y:Math.max(20,r.height-((o.y+o.h)/1.2+30))}}
@@ -4659,7 +4676,7 @@ refreshAllBadgeData();
   }
   function hit(x,y){if(!current.world)return null;const c=$('splad-build-canvas'),r=c.getBoundingClientRect();for(let i=current.world.objects.length-1;i>=0;i--){const o=current.world.objects[i];if(o.type==='baseplate')continue;const p=worldToScreen(o),w=o.w/1.2,h=o.h/1.2;if(x>=p.x&&x<=p.x+w&&y>=p.y&&y<=p.y+h)return o}return null}
   function select(o){current.selected=o?.id||null;$('splad-selected-name').textContent=o?o.label||o.type:'Nothing selected';if(o){$('splad-prop-x').value=o.x;$('splad-prop-y').value=o.y;$('splad-prop-w').value=o.w;$('splad-prop-h').value=o.h;$('splad-prop-color').value=o.color;$('splad-prop-anchor').value=String(!!o.anchored);$('splad-prop-label').value=o.label||''}$('splad-build-status').textContent=o?`Selected: ${o.label||o.type}`:'Select an object to edit it.';draw()}
-  function openWorld(w){current.world=JSON.parse(JSON.stringify(w));current.selected=null;current.connectMode=false;$('splad-builder').style.display='block';resize();window.scrollTo(0,document.body.scrollHeight)}
+  function openWorld(w){current.world=JSON.parse(JSON.stringify(w));window.__spladLiveBuildWorld=current.world;current.selected=null;current.connectMode=false;$('splad-builder').style.display='block';resize();window.scrollTo(0,document.body.scrollHeight)}
   window.spladBuildCreateWorld=function(){let name=prompt('Name your Spladpad world:','My Spladpad World');if(!name)return;const w=defaultWorld();w.name=name.trim().slice(0,40)||w.name;const a=worlds();a.push(w);saveWorlds(a);openWorld(w);renderWorlds()}
   window.spladBuildEdit=function(id){const w=worlds().find(x=>x.id===id);if(w)openWorld(w)}
   window.spladBuildDeleteWorld=function(id){const w=worlds().find(x=>x.id===id);if(!w)return;if(!confirm(`Are you sure you want to delete "${w.name}"?`))return;saveWorlds(worlds().filter(x=>x.id!==id));if(current.world?.id===id){current.world=null;$('splad-builder').style.display='none'}renderWorlds()}
@@ -4682,5 +4699,212 @@ refreshAllBadgeData();
   function initCanvas(){if(!c)return;window.addEventListener('resize',resize);c.addEventListener('mousedown',e=>{const r=c.getBoundingClientRect(),o=hit(e.clientX-r.left,e.clientY-r.top);if(current.connectMode&&o){if(!current._firstConnect){current._firstConnect=o.id;$('splad-build-status').textContent='First object selected. Click a second object.'}else if(current._firstConnect!==o.id){const pair=[current._firstConnect,o.id];if(!current.world.connections.some(p=>(p[0]===pair[0]&&p[1]===pair[1])||(p[0]===pair[1]&&p[1]===pair[0])))current.world.connections.push(pair);current._firstConnect=null;$('splad-build-status').textContent='Objects connected.';spladBuildSave(false);draw()}return}select(o);if(o&&!o.anchored){current.drag={o,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y}}});c.addEventListener('mousemove',e=>{if(!current.drag)return;const d=current.drag;d.o.x=d.ox+(e.clientX-d.sx)*1.2;d.o.y=d.oy-(e.clientY-d.sy)*1.2;select(d.o)});c.addEventListener('mouseup',()=>{if(current.drag){current.drag=null;spladBuildSave(false)}});c.addEventListener('mouseleave',()=>{if(current.drag){current.drag=null;spladBuildSave(false)}});c.addEventListener('dblclick',()=>{});document.addEventListener('keydown',e=>{if(document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){spladBuildDuplicate();e.preventDefault()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='v'){spladBuildPaste();e.preventDefault()}if(e.key==='Delete'){spladBuildDelete();e.preventDefault()}})}
   initCanvas();renderWorlds();
 })();
-</script></body>
+</script>
+
+<!-- SPLADPAD.BUILD PHYSICS / PLAY TEST / PUBLISHED-GAMES UPDATE -->
+<style id="splad-build-runtime-style">
+#splad-playtest-modal{position:fixed;inset:0;background:rgba(0,10,25,.9);display:none;z-index:10001;padding:14px;box-sizing:border-box}
+#splad-playtest-modal.open{display:block}
+.splad-playtest-shell{height:100%;display:flex;flex-direction:column;background:#071a31;border:2px solid #1688e8;border-radius:12px;overflow:hidden}
+.splad-playtest-top{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#061426;color:#fff;border-bottom:1px solid #176da6}
+.splad-playtest-title{font-weight:900;font-size:18px;margin-right:auto}.splad-playtest-label{color:#84d0ff;font-size:12px;font-weight:800}
+.splad-playtest-close{border:0;border-radius:7px;padding:8px 12px;background:#a83232;color:#fff;font-weight:900;cursor:pointer}
+#splad-playtest-stage{position:relative;flex:1;overflow:hidden;background:linear-gradient(#dff4ff 0 68%,#b9dcf2 68%)}
+#splad-playtest-world{position:absolute;inset:0}
+.splad-pt-object{position:absolute;box-sizing:border-box;transform-origin:center bottom;border-radius:4px;box-shadow:inset 2px 2px 4px rgba(255,255,255,.35),inset -3px -3px 5px rgba(0,0,0,.22)}
+.splad-pt-tree{background:transparent!important;box-shadow:none!important}.splad-pt-tree .trunk{position:absolute;left:43%;top:38%;width:14%;height:62%;background:#7a4d2a;border-radius:3px}.splad-pt-tree .leaves{position:absolute;left:8%;top:4%;width:84%;height:50%;background:#5f9b45;border-radius:50%}
+.splad-pt-spawn{display:flex;align-items:center;justify-content:center;color:#fff;font:900 11px sans-serif;background:#22a75b!important}
+#splad-playtest-player{position:absolute;width:42px;height:92px;border-radius:12px 12px 9px 9px;background:linear-gradient(145deg,#ff666f,#d9303c);box-shadow:inset 4px 4px 7px rgba(255,255,255,.22),inset -5px -5px 8px rgba(0,0,0,.22);z-index:500}
+#splad-playtest-player:before,#splad-playtest-player:after{content:"";position:absolute;top:18px;width:9px;height:13px;background:#111;border-radius:50%}#splad-playtest-player:before{left:9px}#splad-playtest-player:after{right:9px}
+.splad-playtest-help{position:absolute;left:10px;bottom:10px;background:rgba(4,18,34,.86);color:#fff;border:1px solid #3b9fe5;border-radius:7px;padding:7px 9px;font-size:11px;z-index:900}
+.splad-published-build-wrap{margin-top:14px}
+.splad-published-build-title{font-weight:900;font-size:16px;color:#123d69;margin-bottom:8px}
+.splad-published-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.splad-published-card{background:#fff;border:1px solid #8bc8e8;border-radius:8px;overflow:hidden;box-shadow:0 2px 7px rgba(0,0,0,.12)}
+.splad-published-card img{width:100%;height:120px;display:block;object-fit:cover;background:#dff4ff}
+.splad-published-body{padding:10px}.splad-published-name{font-weight:900;color:#123d69}.splad-published-meta{font-size:11px;color:#5f7f96;margin:4px 0 9px}
+.splad-published-play{width:100%;border:0;border-radius:6px;padding:8px;background:#1688e8;color:#fff;font-weight:900;cursor:pointer}
+</style>
+
+<div id="splad-playtest-modal" aria-hidden="true">
+  <div class="splad-playtest-shell">
+    <div class="splad-playtest-top">
+      <div class="splad-playtest-title" id="splad-playtest-name">PLAY TEST</div>
+      <div class="splad-playtest-label">PLAY TEST MODE</div>
+      <button class="splad-playtest-close" type="button" onclick="window.spladClosePlayTest()">LEAVE</button>
+    </div>
+    <div id="splad-playtest-stage">
+      <div id="splad-playtest-world"></div>
+      <div id="splad-playtest-player"></div>
+      <div class="splad-playtest-help">Move: WASD / Arrow Keys • Jump: Space</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEY='spladpad_build_worlds_v1';
+  const $=id=>document.getElementById(id);
+  const getWorlds=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}};
+  const saveWorlds=a=>localStorage.setItem(KEY,JSON.stringify(a));
+  const uid=()=> 'pt'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  let currentWorldId=null;
+  let editorPointerDown=false;
+  let play={world:null,player:{x:80,y:0,vx:0,vy:0},keys:{},raf:0,last:0};
+  const velocities=new Map();
+
+  function worldById(id){return getWorlds().find(w=>w.id===id)||null}
+  function exposeCurrent(id){currentWorldId=id; window.__spladCurrentBuildWorldId=id;}
+
+  const oldCreate=window.spladBuildCreateWorld;
+  window.spladBuildCreateWorld=function(){
+    const before=getWorlds().map(w=>w.id);
+    const r=oldCreate.apply(this,arguments);
+    const after=getWorlds();
+    const created=after.find(w=>!before.includes(w.id));
+    if(created) exposeCurrent(created.id);
+    return r;
+  };
+  const oldEdit=window.spladBuildEdit;
+  window.spladBuildEdit=function(id){exposeCurrent(id);return oldEdit.apply(this,arguments)};
+  const oldSave=window.spladBuildSave;
+  window.spladBuildSave=function(show){
+    if(currentWorldId){
+      const w=worldById(currentWorldId);
+      if(w) window.__spladBuildMirror=w;
+    }
+    return oldSave.apply(this,arguments)
+  };
+
+  function overlaps(a,b){return a.x < b.x+b.w && a.x+a.w > b.x}
+  function applyPhysics(){
+    if(!$('splad-builder') || $('splad-builder').style.display==='none' || !currentWorldId) return;
+    if(editorPointerDown) return;
+    const worlds=getWorlds();
+    const w=worlds.find(v=>v.id===currentWorldId); if(!w) return;
+    const live=window.__spladLiveBuildWorld || w;
+    const objects=live.objects||[];
+    const bp=objects.find(o=>o.type==='baseplate');
+    let changed=false;
+    const dt=1; const gravity=.9;
+    const ordered=[...objects].filter(o=>o.type!=='baseplate').sort((a,b)=>a.y-b.y);
+    for(const o of ordered){
+      const key=o.id;
+      if(o.anchored){velocities.set(key,0);continue}
+      let vy=velocities.get(key)||0;
+      vy-=gravity*dt;
+      let nextY=o.y+vy*dt;
+      let support=null;
+      if(bp && overlaps(o,bp) && nextY <= bp.y+bp.h){support=bp.y+bp.h}
+      for(const other of objects){
+        if(other===o || other.type==='baseplate') continue;
+        if(!overlaps(o,other)) continue;
+        const top=other.y+other.h;
+        if(o.y>=top-2 && nextY<=top){
+          if(!support || top>support) support=top;
+        }
+      }
+      if(support!=null){
+        if(Math.abs(o.y-support)>0.1 || vy!==0){o.y=support;changed=true}
+        vy=0;
+      }else if(Math.abs(nextY-o.y)>0.05){o.y=nextY;changed=true}
+      velocities.set(key,vy);
+    }
+    if(changed){
+      const idx=worlds.findIndex(v=>v.id===currentWorldId);
+      if(idx>=0) worlds[idx]=JSON.parse(JSON.stringify(live));
+      saveWorlds(worlds);
+      if(typeof window.spladBuildSave==='function') window.spladBuildSave(false);
+    }
+  }
+  setInterval(applyPhysics,50);
+
+  function renderPublished(){
+    const gamesHome=$('games-home'); if(!gamesHome) return;
+    let wrap=$('splad-published-builds');
+    if(!wrap){
+      wrap=document.createElement('div'); wrap.id='splad-published-builds'; wrap.className='splad-published-build-wrap';
+      gamesHome.parentNode.insertBefore(wrap,gamesHome.nextSibling);
+    }
+    const published=getWorlds().filter(w=>w.published);
+    if(!published.length){wrap.innerHTML='';return}
+    wrap.innerHTML='<div class="dashboard-panel" style="padding:14px"><div class="splad-published-build-title">CREATOR GAMES</div><div class="splad-published-grid">'+published.map(w=>{
+      const thumb=w.thumbnail||'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250"><rect width="500" height="250" fill="#dff4ff"/><rect y="190" width="500" height="60" fill="#1987d0"/><rect x="190" y="120" width="120" height="70" fill="#1688e8"/></svg>');
+      return '<div class="splad-published-card"><img src="'+thumb+'" alt="'+String(w.name).replace(/"/g,'&quot;')+' thumbnail"><div class="splad-published-body"><div class="splad-published-name">'+escapeHTML2(w.name)+'</div><div class="splad-published-meta">PUBLISHED • '+(w.objects||[]).length+' objects • This device</div><button class="splad-published-play" type="button" onclick="window.spladPlayPublished(\''+String(w.id).replace(/'/g,"\\'")+'\')">PLAY</button></div></div>'
+    }).join('')+'</div></div>';
+  }
+  function escapeHTML2(v){return String(v).replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\':'&#92;','"':'&quot;'}[m]))}
+
+  const oldPublish=window.spladBuildPublish;
+  window.spladBuildPublish=function(){
+    if(!currentWorldId) return oldPublish.apply(this,arguments);
+    const worlds=getWorlds(); const w=worlds.find(v=>v.id===currentWorldId); if(!w)return;
+    w.published=true; saveWorlds(worlds);
+    renderPublished();
+    alert('Your world is now published in the Games area.');
+  };
+
+  function ptScreen(o,stageW,stageH){
+    const scale=Math.min(stageW/950,stageH/650);
+    return {x:o.x*scale+40,y:stageH-(o.y+o.h)*scale-50,w:o.w*scale,h:o.h*scale,scale};
+  }
+  function openPlayTest(w){
+    play.world=JSON.parse(JSON.stringify(w)); play.player={x:80,y:0,vx:0,vy:0}; play.keys={};
+    $('splad-playtest-name').textContent=w.name+' — PLAY TEST'; $('splad-playtest-modal').classList.add('open'); $('splad-playtest-modal').setAttribute('aria-hidden','false');
+    renderPlayWorld(); cancelAnimationFrame(play.raf); play.last=performance.now(); play.raf=requestAnimationFrame(tickPlay);
+  }
+  function renderPlayWorld(){
+    const stage=$('splad-playtest-stage'), worldEl=$('splad-playtest-world'); if(!stage||!worldEl||!play.world)return;
+    const sw=stage.clientWidth, sh=stage.clientHeight; worldEl.innerHTML='';
+    for(const o of play.world.objects||[]){
+      const p=ptScreen(o,sw,sh); const d=document.createElement('div'); d.className='splad-pt-object'; d.style.left=p.x+'px'; d.style.top=p.y+'px'; d.style.width=p.w+'px'; d.style.height=p.h+'px';
+      if(o.type==='tree'){d.className+=' splad-pt-tree'; d.innerHTML='<span class="trunk"></span><span class="leaves"></span>'}
+      else if(o.type==='spawn'){d.className+=' splad-pt-spawn'; d.textContent='SPAWN';}
+      else if(o.type==='ramp'){d.style.clipPath='polygon(0 100%,100% 100%,100% 0)';d.style.background=o.color}
+      else d.style.background=o.color||'#1688e8';
+      worldEl.appendChild(d);
+    }
+    const pl=$('splad-playtest-player'); const pp=ptScreen({x:play.player.x,y:play.player.y,w:42,h:92},sw,sh); pl.style.left=pp.x+'px';pl.style.top=pp.y+'px';
+  }
+  function tickPlay(now){
+    const dt=Math.min(2,(now-play.last)/16.67||1); play.last=now;
+    const k=play.keys; play.player.vx=(k.ArrowLeft||k.a?-3.5:0)+(k.ArrowRight||k.d?3.5:0); play.player.x+=play.player.vx*dt;
+    play.player.vy-=.65*dt; let nextY=play.player.y+play.player.vy*dt; const footW=42,footH=92; let support=0;
+    for(const o of play.world.objects||[]){
+      if(o.type==='baseplate' || o.anchored || o.type!=='spawn'){
+        if(o.type==='baseplate' || o.anchored){
+          if(play.player.x+footW>o.x&&play.player.x<o.x+o.w){const top=o.y+o.h;if(play.player.y>=top-3&&nextY<=top)support=Math.max(support,top)}
+        }
+      }
+    }
+    if(support){play.player.y=support;play.player.vy=0}else{play.player.y=nextY}
+    play.player.x=Math.max(0,Math.min(850,play.player.x)); if(play.player.y<0){play.player.y=0;play.player.vy=0}
+    renderPlayWorld(); play.raf=requestAnimationFrame(tickPlay);
+  }
+  window.spladPlayPublished=function(id){const w=worldById(id);if(w)openPlayTest(w)};
+  window.spladClosePlayTest=function(){cancelAnimationFrame(play.raf);$('splad-playtest-modal').classList.remove('open');$('splad-playtest-modal').setAttribute('aria-hidden','true');play.world=null};
+
+  const oldPlay=window.spladBuildPlay;
+  window.spladBuildPlay=function(){
+    if(!currentWorldId) return oldPlay.apply(this,arguments);
+    const w=worldById(currentWorldId); if(w) openPlayTest(w);
+  };
+
+  document.addEventListener('keydown',e=>{
+    const modal=$('splad-playtest-modal');
+    if(modal&&modal.classList.contains('open')){
+      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','d','w','s',' '].includes(e.key)||e.code==='Space')e.preventDefault();
+      play.keys[e.key]=true; if(e.code==='Space' && play.player.y<=1)play.player.vy=10;
+    }
+  });
+  document.addEventListener('keyup',e=>{if($('splad-playtest-modal')?.classList.contains('open'))play.keys[e.key]=false});
+  window.addEventListener('resize',()=>{if($('splad-playtest-modal')?.classList.contains('open'))renderPlayWorld()});
+
+  const canvas=$('splad-build-canvas');
+  if(canvas){canvas.addEventListener('mousedown',()=>editorPointerDown=true);window.addEventListener('mouseup',()=>editorPointerDown=false)}
+  renderPublished();
+})();
+</script>
+
+</body>
 </html>
