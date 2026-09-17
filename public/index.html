@@ -1461,6 +1461,13 @@ textarea {
 <style>
 #username-input, #password-input { user-select: none; -webkit-user-select: none; }
 </style>
+
+<style id="spladpad-update-styles">
+.splad-dodge-ball-icon{display:inline-block;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#fff 0 18%,#ddd 19% 36%,#9b9b9b 37% 58%,#444 59% 100%);border:5px solid #222;box-shadow:8px 10px 0 rgba(0,0,0,.22),inset 5px 5px 8px rgba(255,255,255,.5);position:relative}
+.splad-dodge-ball-icon:after{content:'DOGE';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);font:900 12px Arial,sans-serif;color:#222;background:rgba(255,255,255,.72);padding:2px 5px;border-radius:3px}
+.splad-undo-btn{position:absolute;right:10px;top:10px;z-index:20;border:2px solid #167bc1;background:#fff;color:#123d69;font-weight:900;border-radius:7px;padding:8px 12px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.splad-gear-used{display:block;margin-top:6px;font-size:11px;font-weight:900;color:#1a7c43}
+</style>
 </head>
 
 <body>
@@ -1875,7 +1882,7 @@ textarea {
 
                         <button
                             class="buy-btn"
-                            onclick="buyItem('DON'T BUY - STILL IN WORK',250)"
+                            onclick="alert('Speed Shoes are still in work. Please do not buy yet.')"
                         >
                             BUY
                         </button>
@@ -1904,6 +1911,15 @@ textarea {
                             BUY
                         </button>
 
+                    </div>
+
+                    <div class="shop-item">
+                        <div class="shop-icon">
+                            <span class="splad-dodge-ball-icon" aria-hidden="true"></span>
+                        </div>
+                        <h3>DOGE BALL GEAR</h3>
+                        <div class="shop-price">1500 Coins</div>
+                        <button class="buy-btn" onclick="buyItem('Doge Ball',1500)">BUY</button>
                     </div>
 
                 </div>
@@ -2120,6 +2136,7 @@ textarea {
                                     <button class="build-item" onclick="spladBuildAdd('crate')">CRATE<small>Built-in original model</small></button>
                                     <button class="build-item" onclick="spladBuildAdd('platform')">PLATFORM<small>Built-in original model</small></button>
                                     <button class="build-item" onclick="spladBuildAdd('sign')">SIGN<small>Built-in original model</small></button>
+                                    <button class="build-item" onclick="spladBuildAdd('dodgeball')">DOGE BALL<small>Original gear model</small></button>
                                 </div>
                             </div>
                             <div class="build-section">
@@ -3652,6 +3669,7 @@ function getItemIcon(item) {
     if (item === "Blue Hat") return '<span class="shop-3d-item item-hat"></span>';
     if (item === "Speed Shoes") return '<span class="shop-3d-item item-shoes"></span>';
     if (item === "Star Effect") return '<span class="shop-3d-item item-star"></span>';
+    if (item === "Doge Ball") return '<span class="splad-dodge-ball-icon"></span>';
     return '<span class="shop-3d-item item-star"></span>';
 }
 
@@ -3659,6 +3677,7 @@ function getItemSlot(item) {
     if (item === "Blue Hat") return "hat";
     if (item === "Speed Shoes") return "shoes";
     if (item === "Star Effect") return "effect";
+    if (item === "Doge Ball") return "gear";
     return "item";
 }
 
@@ -3698,7 +3717,7 @@ function updateInventory() {
                 (equipped ? '<div class="equipped-label">EQUIPPED</div>' : '<div>Ready to wear</div>') +
             '</div>' +
             '<button class="wear-btn ' + (equipped ? 'remove' : '') + '" onclick="toggleWearItem(' + index + ')">' +
-                (equipped ? 'TAKE OFF' : 'WEAR') +
+                (item === 'Doge Ball' ? (equipped ? 'UNEQUIP' : 'USE GEAR') : (equipped ? 'TAKE OFF' : 'WEAR')) +
             '</button>' +
         '</div>';
     }).join("");
@@ -3911,6 +3930,7 @@ function buyItem(
     if (item === "Blue Hat") {
         account.equippedItems.hat = item;
     }
+    // Doge Ball can be activated from the inventory with USE GEAR.
 
     saveAccounts(accounts);
 
@@ -4672,7 +4692,7 @@ refreshAllBadgeData();
     const bp=current.world.objects.find(o=>o.type==='baseplate'); if(bp){const p=worldToScreen(bp);ctx.fillStyle=bp.color;ctx.fillRect(0,r.height-bp.h/1.2,r.width,bp.h/1.2)}
     // connections
     ctx.strokeStyle='#0b5f9c';ctx.lineWidth=4;current.world.connections.forEach(pair=>{const a=current.world.objects.find(o=>o.id===pair[0]),b=current.world.objects.find(o=>o.id===pair[1]);if(!a||!b)return;const pa=worldToScreen(a),pb=worldToScreen(b);ctx.beginPath();ctx.moveTo(pa.x+pa.w/2/1.2,pa.y+pa.h/2/1.2);ctx.lineTo(pb.x+pb.w/2/1.2,pb.y+pb.h/2/1.2);ctx.stroke()});
-    current.world.objects.filter(o=>o.type!=='baseplate').forEach(o=>{const p=worldToScreen(o),w=o.w/1.2,h=o.h/1.2;ctx.save();ctx.fillStyle=o.color; if(o.type==='tree'){ctx.fillStyle='#5f9b45';ctx.beginPath();ctx.arc(p.x+w/2,p.y+h*.32,h*.34,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7a4d2a';ctx.fillRect(p.x+w*.43,p.y+h*.45,w*.14,h*.55)} else if(o.type==='spawn'){ctx.fillStyle='#22a75b';ctx.fillRect(p.x,p.y,w,h);ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.fillText('SPAWN',p.x+8,p.y+h/2+4)} else if(o.type==='ramp'){ctx.beginPath();ctx.moveTo(p.x,p.y+h);ctx.lineTo(p.x+w,p.y+h);ctx.lineTo(p.x+w,p.y);ctx.closePath();ctx.fill()} else {ctx.fillRect(p.x,p.y,w,h)} if(o.anchored){ctx.strokeStyle='#fff';ctx.setLineDash([5,4]);ctx.strokeRect(p.x+2,p.y+2,w-4,h-4);ctx.setLineDash([])} if(current.selected===o.id){ctx.strokeStyle='#ffcf33';ctx.lineWidth=3;ctx.strokeRect(p.x-3,p.y-3,w+6,h+6)}ctx.restore()})
+    current.world.objects.filter(o=>o.type!=='baseplate').forEach(o=>{const p=worldToScreen(o),w=o.w/1.2,h=o.h/1.2;ctx.save();ctx.fillStyle=o.color; if(o.type==='tree'){ctx.fillStyle='#5f9b45';ctx.beginPath();ctx.arc(p.x+w/2,p.y+h*.32,h*.34,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7a4d2a';ctx.fillRect(p.x+w*.43,p.y+h*.45,w*.14,h*.55)} else if(o.type==='spawn'){ctx.fillStyle='#22a75b';ctx.fillRect(p.x,p.y,w,h);ctx.fillStyle='#fff';ctx.font='bold 12px sans-serif';ctx.fillText('SPAWN',p.x+8,p.y+h/2+4)} else if(o.type==='ramp'){ctx.beginPath();ctx.moveTo(p.x,p.y+h);ctx.lineTo(p.x+w,p.y+h);ctx.lineTo(p.x+w,p.y);ctx.closePath();ctx.fill()} else if(o.type==='sign'){ctx.fillRect(p.x,p.y,w,h*.72);ctx.fillStyle='#fff';ctx.font='900 12px sans-serif';ctx.fillText((o.label||'SIGN').slice(0,12),p.x+8,p.y+h*.43);ctx.fillStyle='#7a4d2a';ctx.fillRect(p.x+w*.44,p.y+h*.72,w*.12,h*.28)} else if(o.type==='dodgeball'){ctx.beginPath();ctx.arc(p.x+w/2,p.y+h/2,Math.min(w,h)*.43,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#222';ctx.lineWidth=3;ctx.stroke()} else {ctx.fillRect(p.x,p.y,w,h)} if(o.anchored){ctx.strokeStyle='#fff';ctx.setLineDash([5,4]);ctx.strokeRect(p.x+2,p.y+2,w-4,h-4);ctx.setLineDash([])} if(current.selected===o.id){ctx.strokeStyle='#ffcf33';ctx.lineWidth=3;ctx.strokeRect(p.x-3,p.y-3,w+6,h+6)}ctx.restore()})
   }
   function hit(x,y){if(!current.world)return null;const c=$('splad-build-canvas'),r=c.getBoundingClientRect();for(let i=current.world.objects.length-1;i>=0;i--){const o=current.world.objects[i];if(o.type==='baseplate')continue;const p=worldToScreen(o),w=o.w/1.2,h=o.h/1.2;if(x>=p.x&&x<=p.x+w&&y>=p.y&&y<=p.y+h)return o}return null}
   function select(o){current.selected=o?.id||null;$('splad-selected-name').textContent=o?o.label||o.type:'Nothing selected';if(o){$('splad-prop-x').value=o.x;$('splad-prop-y').value=o.y;$('splad-prop-w').value=o.w;$('splad-prop-h').value=o.h;$('splad-prop-color').value=o.color;$('splad-prop-anchor').value=String(!!o.anchored);$('splad-prop-label').value=o.label||''}$('splad-build-status').textContent=o?`Selected: ${o.label||o.type}`:'Select an object to edit it.';draw()}
@@ -4680,7 +4700,7 @@ refreshAllBadgeData();
   window.spladBuildCreateWorld=function(){let name=prompt('Name your Spladpad world:','My Spladpad World');if(!name)return;const w=defaultWorld();w.name=name.trim().slice(0,40)||w.name;const a=worlds();a.push(w);saveWorlds(a);openWorld(w);renderWorlds()}
   window.spladBuildEdit=function(id){const w=worlds().find(x=>x.id===id);if(w)openWorld(w)}
   window.spladBuildDeleteWorld=function(id){const w=worlds().find(x=>x.id===id);if(!w)return;if(!confirm(`Are you sure you want to delete "${w.name}"?`))return;saveWorlds(worlds().filter(x=>x.id!==id));if(current.world?.id===id){current.world=null;$('splad-builder').style.display='none'}renderWorlds()}
-  window.spladBuildAdd=function(type){if(!current.world){alert('Click CREATE first.');return}let n=current.world.objects.length;const map={block:['Block','#1688e8',120,70],wall:['Wall','#235b85',150,45],ramp:['Ramp','#1688e8',140,70],spawn:['Spawn','#22a75b',100,55],tree:['Tree','#5f9b45',80,120],crate:['Crate','#b77b38',75,75],platform:['Platform','#2877a8',170,35],sign:['Sign','#7d4b2a',120,70]};const [label,color,w,h]=map[type]||map.block;const o={id:uid(),type,x:120+(n%5)*140,y:100+Math.floor(n/5)*80,w,h,color,anchored:false,label};current.world.objects.push(o);select(o);spladBuildSave(false)}
+  window.spladBuildAdd=function(type){if(!current.world){alert('Click CREATE first.');return}let n=current.world.objects.length;const map={block:['Block','#1688e8',120,70],wall:['Wall','#235b85',150,45],ramp:['Ramp','#1688e8',140,70],spawn:['Spawn','#22a75b',100,55],tree:['Tree','#5f9b45',80,120],crate:['Crate','#b77b38',75,75],platform:['Platform','#2877a8',170,35],sign:['Sign','#7d4b2a',120,70],dodgeball:['Doge Ball','#d7d7d7',70,70]};const [label,color,w,h]=map[type]||map.block;const bp=current.world.objects.find(o=>o.type==='baseplate');const ground=bp?(bp.y+bp.h-h):0;const o={id:uid(),type,x:120+(n%5)*140,y:Math.max(0,ground),w,h,color,anchored:false,label};current.world.objects.push(o);select(o);spladBuildSave(false)}
   window.spladBuildDelete=function(){if(!current.world||!current.selected)return;current.world.objects=current.world.objects.filter(o=>o.id!==current.selected);current.world.connections=current.world.connections.filter(p=>p[0]!==current.selected&&p[1]!==current.selected);select(null);spladBuildSave(false)}
   window.spladBuildDuplicate=function(){if(!current.world||!current.selected)return;const o=current.world.objects.find(x=>x.id===current.selected);if(!o)return;current.copy={...o,id:uid(),x:o.x+35,y:o.y-35};$('splad-build-status').textContent='Copied object. Click PASTE or press Ctrl+V.'}
   window.spladBuildPaste=function(){if(!current.world||!current.copy)return;const o={...current.copy,id:uid()};current.world.objects.push(o);select(o);spladBuildSave(false)}
@@ -4696,7 +4716,7 @@ refreshAllBadgeData();
   window.spladBuildRunHtml=function(){const f=$('splad-html-preview');f.srcdoc=$('splad-html-code').value}
   window.spladBuildSaveScripts=function(){if(!current.world)return;current.world.scripts={html:$('splad-html-code').value,python:$('splad-python-code').value};spladBuildSave(false);alert('Scripts saved with your world.')}
   const c=$('splad-build-canvas');
-  function initCanvas(){if(!c)return;window.addEventListener('resize',resize);c.addEventListener('mousedown',e=>{const r=c.getBoundingClientRect(),o=hit(e.clientX-r.left,e.clientY-r.top);if(current.connectMode&&o){if(!current._firstConnect){current._firstConnect=o.id;$('splad-build-status').textContent='First object selected. Click a second object.'}else if(current._firstConnect!==o.id){const pair=[current._firstConnect,o.id];if(!current.world.connections.some(p=>(p[0]===pair[0]&&p[1]===pair[1])||(p[0]===pair[1]&&p[1]===pair[0])))current.world.connections.push(pair);current._firstConnect=null;$('splad-build-status').textContent='Objects connected.';spladBuildSave(false);draw()}return}select(o);if(o&&!o.anchored){current.drag={o,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y}}});c.addEventListener('mousemove',e=>{if(!current.drag)return;const d=current.drag;d.o.x=d.ox+(e.clientX-d.sx)*1.2;d.o.y=d.oy-(e.clientY-d.sy)*1.2;select(d.o)});c.addEventListener('mouseup',()=>{if(current.drag){current.drag=null;spladBuildSave(false)}});c.addEventListener('mouseleave',()=>{if(current.drag){current.drag=null;spladBuildSave(false)}});c.addEventListener('dblclick',()=>{});document.addEventListener('keydown',e=>{if(document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){spladBuildDuplicate();e.preventDefault()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='v'){spladBuildPaste();e.preventDefault()}if(e.key==='Delete'){spladBuildDelete();e.preventDefault()}})}
+  function initCanvas(){if(!c)return;window.addEventListener('resize',resize);c.addEventListener('mousedown',e=>{const r=c.getBoundingClientRect(),o=hit(e.clientX-r.left,e.clientY-r.top);if(current.connectMode&&o){if(!current._firstConnect){current._firstConnect=o.id;$('splad-build-status').textContent='First object selected. Click a second object.'}else if(current._firstConnect!==o.id){const pair=[current._firstConnect,o.id];if(!current.world.connections.some(p=>(p[0]===pair[0]&&p[1]===pair[1])||(p[0]===pair[1]&&p[1]===pair[0])))current.world.connections.push(pair);current._firstConnect=null;$('splad-build-status').textContent='Objects connected.';spladBuildSave(false);draw()}return}select(o);if(o&&!o.anchored){current.drag={o,sx:e.clientX,sy:e.clientY,ox:o.x,oy:o.y,moved:false}}});c.addEventListener('mousemove',e=>{if(!current.drag)return;const d=current.drag;const dx=e.clientX-d.sx,dy=e.clientY-d.sy;if(Math.abs(dx)+Math.abs(dy)<2)return;d.moved=true;d.o.x=d.ox+dx*1.2;d.o.y=d.oy-dy*1.2;draw()});const finish=()=>{if(current.drag){current.drag=null;spladBuildSave(false);draw()}};c.addEventListener('mouseup',finish);c.addEventListener('mouseleave',finish);c.addEventListener('dblclick',()=>{});document.addEventListener('keydown',e=>{if(document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'){spladBuildDuplicate();e.preventDefault()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='v'){spladBuildPaste();e.preventDefault()}if(e.key==='Delete'){spladBuildDelete();e.preventDefault()}})}
   initCanvas();renderWorlds();
 })();
 </script>
@@ -4861,6 +4881,8 @@ refreshAllBadgeData();
       if(o.type==='tree'){d.className+=' splad-pt-tree'; d.innerHTML='<span class="trunk"></span><span class="leaves"></span>'}
       else if(o.type==='spawn'){d.className+=' splad-pt-spawn'; d.textContent='SPAWN';}
       else if(o.type==='ramp'){d.style.clipPath='polygon(0 100%,100% 100%,100% 0)';d.style.background=o.color}
+      else if(o.type==='sign'){d.style.background=o.color||'#7d4b2a';d.innerHTML='<b style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:900 12px Arial">'+String(o.label||'SIGN').replace(/[&<>"']/g,'')+'</b><i style="position:absolute;left:44%;bottom:-28%;width:12%;height:28%;background:#7a4d2a"></i>'}
+      else if(o.type==='dodgeball'){d.style.borderRadius='50%';d.style.background='radial-gradient(circle at 30% 25%,#fff 0 18%,#ddd 19% 36%,#999 37% 58%,#333 59% 100%)';d.style.border='3px solid #222'}
       else d.style.background=o.color||'#1688e8';
       worldEl.appendChild(d);
     }
@@ -4871,10 +4893,8 @@ refreshAllBadgeData();
     const k=play.keys; play.player.vx=(k.ArrowLeft||k.a?-3.5:0)+(k.ArrowRight||k.d?3.5:0); play.player.x+=play.player.vx*dt;
     play.player.vy-=.65*dt; let nextY=play.player.y+play.player.vy*dt; const footW=42,footH=92; let support=0;
     for(const o of play.world.objects||[]){
-      if(o.type==='baseplate' || o.anchored || o.type!=='spawn'){
-        if(o.type==='baseplate' || o.anchored){
-          if(play.player.x+footW>o.x&&play.player.x<o.x+o.w){const top=o.y+o.h;if(play.player.y>=top-3&&nextY<=top)support=Math.max(support,top)}
-        }
+      if(o.type==='baseplate' || o.anchored){
+        if(play.player.x+footW>o.x&&play.player.x<o.x+o.w){const top=o.y+o.h;if(play.player.y>=top-4&&nextY<=top)support=Math.max(support,top)}
       }
     }
     if(support){play.player.y=support;play.player.vy=0}else{play.player.y=nextY}
@@ -4908,3 +4928,242 @@ refreshAllBadgeData();
 
 </body>
 </html>
+<!-- SPLADPAD REAL SERVER LOBBY / CREATOR GAME SERVERS -->
+<style id="splad-server-style">
+#splad-server-modal{position:fixed;inset:0;background:rgba(0,12,25,.72);z-index:10050;display:none;align-items:center;justify-content:center;padding:24px}
+#splad-server-modal.open{display:flex}
+.splad-server-shell{width:min(760px,94vw);max-height:88vh;overflow:auto;background:#eaf8ff;border:3px solid #167bc1;border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+.splad-server-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#07345c;color:#fff}
+.splad-server-title{font-weight:900;font-size:20px}.splad-server-close{border:0;background:#d7353f;color:#fff;font-weight:900;border-radius:6px;padding:8px 12px;cursor:pointer}
+.splad-server-body{padding:16px}.splad-server-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.splad-server-actions button{border:0;background:#1688e8;color:#fff;font-weight:900;border-radius:6px;padding:9px 13px;cursor:pointer}.splad-server-actions input{padding:9px;border:1px solid #8abbd8;border-radius:6px;min-width:190px}
+.splad-server-list{display:grid;gap:10px}.splad-server-card{background:#fff;border:1px solid #9bcbe4;border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}.splad-server-card button{border:0;background:#1688e8;color:#fff;font-weight:900;border-radius:6px;padding:8px 12px;cursor:pointer}.splad-server-meta{font-size:12px;color:#52758c;margin-top:4px}
+.splad-server-status{padding:8px 10px;border-radius:6px;background:#d9f1ff;color:#164c70;font-weight:800;margin-bottom:10px;display:none}.splad-server-status.show{display:block}
+.splad-server-players{font-size:12px;color:#406477}
+.splad-online-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#21b36b;margin-right:6px}
+</style>
+<div id="splad-server-modal" aria-hidden="true">
+  <div class="splad-server-shell">
+    <div class="splad-server-head"><div class="splad-server-title" id="splad-server-title">GAME SERVERS</div><button class="splad-server-close" type="button" onclick="window.spladCloseServerLobby()">CLOSE</button></div>
+    <div class="splad-server-body">
+      <div id="splad-server-status" class="splad-server-status"></div>
+      <div class="splad-server-actions">
+        <input id="splad-server-name" maxlength="50" placeholder="Server name (optional)">
+        <button type="button" onclick="window.spladCreateServer()">CREATE SERVER</button>
+        <button type="button" onclick="window.spladRefreshServers()">REFRESH</button>
+      </div>
+      <div id="splad-server-list" class="splad-server-list"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const API=(location.protocol==='file:')?'http://localhost:3000/api':'/api';
+  const $=id=>document.getElementById(id);
+  let selectedWorldId=null;
+  let serverSocket=null;
+  let oldPlayPublished=window.spladPlayPublished;
+  function token(){return localStorage.getItem('spladpad_token')||'';}
+  async function api(path,opts={}){
+    opts.headers=Object.assign({'Content-Type':'application/json','Authorization':'Bearer '+token()},opts.headers||{});
+    const r=await fetch(API+path,opts); const d=await r.json().catch(()=>({})); if(!r.ok)throw new Error(d.error||'Server request failed.'); return d;
+  }
+  function status(msg){const e=$('splad-server-status');if(!e)return;e.textContent=msg;e.classList.add('show');}
+  function closeSocket(){if(serverSocket){try{serverSocket.close()}catch{}serverSocket=null;}}
+  window.spladCloseServerLobby=function(){closeSocket();$('splad-server-modal')?.classList.remove('open');$('splad-server-modal')?.setAttribute('aria-hidden','true');};
+  async function syncWorld(worldId){
+    const worlds=(()=>{try{return JSON.parse(localStorage.getItem('spladpad_build_worlds_v1')||'[]')}catch{return[]}})();
+    const w=worlds.find(x=>x.id===worldId); if(!w)return null;
+    try{const d=await api('/worlds/publish',{method:'POST',body:JSON.stringify({world:w})});return d.world?.world||w}catch(e){throw e}
+  }
+  function renderServers(servers){
+    const list=$('splad-server-list'); if(!list)return;
+    if(!servers.length){list.innerHTML='<div class="splad-server-card"><div><b>No live servers yet.</b><div class="splad-server-meta">Create the first server for this game.</div></div></div>';return;}
+    list.innerHTML=servers.map(s=>'<div class="splad-server-card"><div><b><span class="splad-online-dot"></span>'+String(s.name).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))+'</b><div class="splad-server-meta">'+s.players+' / '+s.maxPlayers+' players • Server '+s.id.slice(0,8)+'</div></div><button type="button" onclick="window.spladJoinServer(\''+s.id+'\')">JOIN</button></div>').join('');
+  }
+  window.spladRefreshServers=async function(){
+    if(!selectedWorldId)return; try{const d=await api('/servers?worldId='+encodeURIComponent(selectedWorldId));renderServers(d.servers||[]);status('Servers are online. Choose a server or create one.');}catch(e){status(e.message)}
+  };
+  window.spladCreateServer=async function(){
+    if(!selectedWorldId)return; if(!token()){status('Please sign in before creating a server.');return;}
+    try{await syncWorld(selectedWorldId);const name=($('splad-server-name')?.value||'').trim();const d=await api('/servers/create',{method:'POST',body:JSON.stringify({worldId:selectedWorldId,name,maxPlayers:12})});status('Server created. Joining...');await window.spladJoinServer(d.server.id);}catch(e){status(e.message)}
+  };
+  window.spladJoinServer=async function(serverId){
+    if(!token()){status('Please sign in before joining a server.');return;}
+    try{
+      const worlds=(()=>{try{return JSON.parse(localStorage.getItem('spladpad_build_worlds_v1')||'[]')}catch{return[]}})();
+      const localWorld=worlds.find(x=>x.id===selectedWorldId);
+      if(!localWorld)throw new Error('World not found.');
+      closeSocket();
+      serverSocket=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+      serverSocket.onopen=()=>serverSocket.send(JSON.stringify({type:'join',serverId,token:token()}));
+      serverSocket.onmessage=ev=>{
+        try{const m=JSON.parse(ev.data);if(m.type==='error'){status(m.error);return}if(m.type==='joined'){status('Connected to server. Players: '+m.players.length); if(oldPlayPublished)oldPlayPublished(selectedWorldId); setTimeout(()=>installMultiplayerOverlay(m),250); } if(m.type==='player:joined'||m.type==='player:update'||m.type==='player:left'){window.__spladServerLastMessage=m; updateRemotePlayers(m);}}catch{}}
+      serverSocket.onclose=()=>status('Disconnected from server.');
+      $('splad-server-modal')?.classList.remove('open');
+      $('splad-server-modal')?.setAttribute('aria-hidden','true');
+    }catch(e){status(e.message)}
+  };
+  function installMultiplayerOverlay(joined){
+    const stage=$('splad-playtest-stage'); if(!stage)return;
+    stage.querySelectorAll('.splad-remote-player').forEach(e=>e.remove());
+    window.__spladRemotePlayers={};
+    (joined.players||[]).forEach(p=>{window.__spladRemotePlayers[p.id]=p;});
+    renderRemotePlayers();
+    if(!window.__spladServerKeysInstalled){
+      window.__spladServerKeysInstalled=true;
+      const keys={}; window.addEventListener('keydown',e=>{keys[e.key]=true});window.addEventListener('keyup',e=>{keys[e.key]=false});
+      if(!window.__spladServerSyncTimer){
+        window.__spladServerSyncTimer=setInterval(()=>{
+          if(!serverSocket||serverSocket.readyState!==1)return;
+          const stage=$('splad-playtest-stage'), pl=$('splad-playtest-player');
+          if(stage&&pl){
+            const scale=Math.min(stage.clientWidth/950,stage.clientHeight/650);
+            const left=parseFloat(pl.style.left)||0, top=parseFloat(pl.style.top)||0;
+            const x=(left-40)/Math.max(scale,.01);
+            const y=(stage.clientHeight-top-50)/Math.max(scale,.01)-92;
+            serverSocket.send(JSON.stringify({type:'player:update',x,y}));
+          }else{
+            serverSocket.send(JSON.stringify({type:'ping'}));
+          }
+        },100);
+      }
+    }
+  }
+  function updateRemotePlayers(m){
+    if(!window.__spladRemotePlayers)return;
+    if(m.type==='player:joined'||m.type==='player:update')window.__spladRemotePlayers[m.player.id]=m.player;
+    if(m.type==='player:left')delete window.__spladRemotePlayers[m.playerId];
+    renderRemotePlayers();
+  }
+  function renderRemotePlayers(){
+    const stage=$('splad-playtest-stage');if(!stage)return;stage.querySelectorAll('.splad-remote-player').forEach(e=>e.remove());
+    const scale=Math.min(stage.clientWidth/950,stage.clientHeight/650);
+    Object.values(window.__spladRemotePlayers||{}).forEach(p=>{
+      const d=document.createElement('div');d.className='splad-remote-player';d.style.position='absolute';d.style.width='42px';d.style.height='92px';d.style.borderRadius='12px';d.style.background=p.avatarColor==='red'?'#e34d57':p.avatarColor==='green'?'#3aaf68':p.avatarColor==='purple'?'#8d5bd1':'#268ce0';d.style.left=(p.x*scale+40)+'px';d.style.top=(stage.clientHeight-(p.y+92)*scale-50)+'px';d.style.zIndex='510';d.title=p.username;stage.appendChild(d);
+    });
+  }
+  window.spladPlayPublished=async function(id){
+    selectedWorldId=id;
+    const modal=$('splad-server-modal');if(!modal)return oldPlayPublished(id);
+    if(!token()){alert('Please sign in before joining a multiplayer server.');return;}
+    modal.classList.add('open');modal.setAttribute('aria-hidden','false');$('splad-server-title').textContent='GAME SERVERS';status('Loading servers...');
+    try{await syncWorld(id);await window.spladRefreshServers();}catch(e){status(e.message)}
+  };
+  const oldPublish=window.spladBuildPublish;
+  window.spladBuildPublish=async function(){
+    const r=oldPublish.apply(this,arguments);
+    const id=window.__spladCurrentBuildWorldId;
+    if(id&&token()){try{await syncWorld(id);status('World published to the online server.');}catch(e){alert('Published locally, but the online server could not save it: '+e.message)}}
+    return r;
+  };
+})();
+</script>
+
+<script id="spladpad-offline-feature-update">
+(function(){
+  const KEY='spladpad_build_worlds_v1';
+  const COIN_TIMER_KEY='spladpad_coin_timer_v1';
+  const $=id=>document.getElementById(id);
+  const getAccountsSafe=()=>{try{return typeof getAccounts==='function'?getAccounts():JSON.parse(localStorage.getItem('spladpad_accounts')||'{}')}catch{return {}}};
+  const saveAccountsSafe=a=>{localStorage.setItem('spladpad_accounts',JSON.stringify(a));};
+  const currentKey=()=>localStorage.getItem('spladpad_current_user');
+  const ensurePlayer1=()=>{const a=getAccountsSafe();const k='player1';if(a[k]){a[k].badges=Array.isArray(a[k].badges)?a[k].badges:['player'];if(!a[k].badges.includes('admin'))a[k].badges.push('admin');saveAccountsSafe(a);}};
+  ensurePlayer1();
+
+  // Give every signed-in player 5 Splad Coins per minute.
+  function coinTick(){
+    const k=currentKey(); if(!k)return;
+    const a=getAccountsSafe(),u=a[k]; if(!u)return;
+    const now=Date.now(),last=Number(localStorage.getItem(COIN_TIMER_KEY+'_'+k)||now);
+    const minutes=Math.floor((now-last)/60000);
+    if(minutes>0){u.coins=Number(u.coins||0)+minutes*5;localStorage.setItem(COIN_TIMER_KEY+'_'+k,String(last+minutes*60000));saveAccountsSafe(a);
+      if(typeof updateShopCoins==='function')updateShopCoins();
+      if(typeof updateInventory==='function')updateInventory();
+    }
+  }
+  setInterval(coinTick,5000); coinTick();
+  window.addEventListener('storage',coinTick);
+
+  // Add Doge Ball purchase locally and keep shop count current.
+  const originalBuy=window.buyItem;
+  window.buyItem=function(item,price){
+    if(item==='Doge Ball') price=1500;
+    return originalBuy.apply(this,[item,price]);
+  };
+
+  // Undo stack for Studio deletes.
+  const undoStack=[];
+  function snapshot(){
+    try{const w=window.__spladLiveBuildWorld;if(w)return JSON.parse(JSON.stringify(w));}catch{}
+    return null;
+  }
+  const originalDelete=window.spladBuildDelete;
+  window.spladBuildDelete=function(){
+    const snap=snapshot(); if(!snap)return;
+    undoStack.push(snap);
+    originalDelete.apply(this,arguments);
+    if(undoStack.length>20)undoStack.shift();
+  };
+  window.spladBuildUndo=function(){
+    const snap=undoStack.pop(); if(!snap)return;
+    const worlds=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return[]}})();
+    const i=worlds.findIndex(w=>w.id===snap.id);
+    if(i>=0){worlds[i]=snap;localStorage.setItem(KEY,JSON.stringify(worlds));window.__spladLiveBuildWorld=snap;if(window.__spladCurrentBuildWorldId)window.spladBuildEdit(window.__spladCurrentBuildWorldId);}
+  };
+
+  // Insert a real undo button in the Studio workspace.
+  function addUndoButton(){
+    const c=$('splad-build-canvas'); if(!c||c.parentElement.querySelector('.splad-undo-btn'))return;
+    const b=document.createElement('button');b.type='button';b.className='splad-undo-btn';b.textContent='BACK / UNDO';b.onclick=window.spladBuildUndo;c.parentElement.style.position='relative';c.parentElement.appendChild(b);
+  }
+  addUndoButton(); setTimeout(addUndoButton,500);
+
+  // Ground all creator objects before Play Test so they are reachable.
+  function groundWorld(w){
+    if(!w||!Array.isArray(w.objects))return;
+    const bp=w.objects.find(o=>o.type==='baseplate'); if(!bp)return;
+    for(const o of w.objects){
+      if(o.type==='baseplate'||o.anchored===false&&o.type==='dodgeball')continue;
+      if(o.y<0)o.y=0;
+    }
+  }
+  const oldPlay=window.spladBuildPlay;
+  window.spladBuildPlay=function(){
+    try{const id=window.__spladCurrentBuildWorldId;const ws=JSON.parse(localStorage.getItem(KEY)||'[]');const w=ws.find(x=>x.id===id);if(w){groundWorld(w);localStorage.setItem(KEY,JSON.stringify(ws));window.__spladLiveBuildWorld=w;}}catch{}
+    return oldPlay.apply(this,arguments);
+  };
+
+  // Disable the server lobby for this update: creator games use local Play Test.
+  window.spladPlayPublished=function(id){
+    try{const ws=JSON.parse(localStorage.getItem(KEY)||'[]');const w=ws.find(x=>x.id===id);if(w){
+      const modal=$('splad-server-modal');if(modal)modal.classList.remove('open');
+      if(typeof window.__spladLocalPlayTest==='function')return window.__spladLocalPlayTest(w);
+      if(typeof window.spladBuildPlay==='function'){window.__spladCurrentBuildWorldId=id;return window.spladBuildPlay();}
+    }}catch{}
+  };
+
+  // Save the local Play Test function so published games never require servers.
+  if(!window.__spladLocalPlayTest && window.spladPlayPublished){window.__spladLocalPlayTest=window.spladPlayPublished;}
+
+  // USE GEAR for Doge Ball.
+  window.useDogeBallGear=function(){
+    const k=currentKey();if(!k){alert('Please sign in first.');return;}
+    const a=getAccountsSafe(),u=a[k];if(!u)return;
+    if(!Array.isArray(u.inventory)||!u.inventory.includes('Doge Ball')){alert('Buy Doge Ball for 1500 Splad Coins first.');return;}
+    u.equippedItems=u.equippedItems||{};u.equippedItems.gear=u.equippedItems.gear==='Doge Ball'?'':'Doge Ball';saveAccountsSafe(a);
+    if(typeof updateInventory==='function')updateInventory();
+    alert(u.equippedItems.gear?'Doge Ball gear is ready to use.':'Doge Ball gear unequipped.');
+  };
+
+  // Patch inventory buttons for Doge Ball specifically.
+  const oldToggle=window.toggleWearItem;
+  window.toggleWearItem=function(index){
+    const k=currentKey(),a=getAccountsSafe(),u=k?a[k]:null,item=u&&Array.isArray(u.inventory)?u.inventory[index]:null;
+    if(item==='Doge Ball')return window.useDogeBallGear();
+    return oldToggle.apply(this,arguments);
+  };
+
+  // Keep player1 admin badge visible to local badge system.
+  document.addEventListener('DOMContentLoaded',function(){ensurePlayer1();if(typeof refreshAllBadgeData==='function')refreshAllBadgeData();if(typeof updateShopCoins==='function')updateShopCoins();addUndoButton();});
+})();
+</script>
