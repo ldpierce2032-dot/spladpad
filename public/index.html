@@ -4926,6 +4926,285 @@ refreshAllBadgeData();
 })();
 </script>
 
+
+<!-- FINAL CREATOR-GAME PHYSICS FIX -->
+<style id="splad-final-physics-style">
+  .splad-pt-object{will-change:transform}
+</style>
+<script id="splad-final-physics-fix">
+(function(){
+  const KEY='spladpad_build_worlds_v1';
+  const $=id=>document.getElementById(id);
+  const worlds=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}};
+  const clone=o=>JSON.parse(JSON.stringify(o));
+
+  // Use the existing Play Test UI, but give every creator game a real
+  // gravity/collision simulation. Anchored objects never move.
+  const state={
+    world:null,
+    player:{x:80,y:0,vx:0,vy:0,onGround:false},
+    keys:{},
+    raf:0,last:0
+  };
+
+  function getWorld(id){
+    return worlds().find(w=>String(w.id)===String(id))||null;
+  }
+
+  function aabb(a,b){
+    return a.x < b.x+b.w && a.x+a.w > b.x &&
+           a.y < b.y+b.h && a.y+a.h > b.y;
+  }
+
+  function horizontalOverlap(a,b){
+    return a.x < b.x+b.w && a.x+a.w > b.x;
+  }
+
+  function isSolid(o){
+    return !!o;
+  }
+
+  function initPhysicsWorld(w){
+    const world=clone(w);
+    world.objects=(world.objects||[]).map(o=>{
+      const x=Number(o.x)||0, y=Number(o.y)||0;
+      return Object.assign({},o,{x,y,vx:0,vy:0});
+    });
+    // Baseplate is always static. Other objects respect their own Anchor setting.
+    for(const o of world.objects){
+      if(o.type==='baseplate') o.anchored=true;
+    }
+    const bp=world.objects.find(o=>o.type==='baseplate');
+    if(bp){
+      const spawn=world.objects.find(o=>o.type==='spawn');
+      const px=spawn?spawn.x:80;
+      const py=spawn?spawn.y:bp.y+bp.h;
+      state.player={x:px,y:Math.max(0,py),vx:0,vy:0,onGround:false};
+    }else{
+      state.player={x:80,y:0,vx:0,vy:0,onGround:false};
+    }
+    state.world=world;
+  }
+
+  function resolveObjectVertical(o, solids, dt){
+    if(o.anchored || o.type==='baseplate' || !isSolid(o)) return;
+    o.vy -= 0.65*dt;
+    let next=o.y+o.vy*dt;
+    let support=null;
+
+    for(const b of solids){
+      if(b===o || !isSolid(b)) continue;
+      if(!horizontalOverlap(o,b)) continue;
+
+      const top=b.y+b.h;
+      const bottom=o.y;
+
+      // Falling onto a surface.
+      if(o.vy<=0 && bottom>=top-8 && next<=top){
+        if(support===null || top>support) support=top;
+      }
+
+      // Rising into a surface.
+      const underside=b.y;
+      if(o.vy>0 && o.y+o.h<=underside+8 && next+o.h>=underside){
+        o.y=underside-o.h;
+        o.vy=0;
+        next=o.y;
+      }
+    }
+
+    if(support!==null){
+      o.y=support;
+      o.vy=0;
+    }else{
+      o.y=next;
+    }
+
+    // Keep creator objects from falling infinitely below the world.
+    if(o.y < -500){
+      o.y=-500;
+      o.vy=0;
+    }
+  }
+
+  function simulateObjects(dt){
+    const objs=state.world?.objects||[];
+    const solids=objs.filter(isSolid);
+    // A few iterations let unanchored objects stack on one another.
+    for(let pass=0;pass<4;pass++){
+      for(const o of objs) resolveObjectVertical(o,solids,dt);
+    }
+  }
+
+  function playerStep(dt){
+    const p=state.player, k=state.keys;
+    const speed=3.8;
+    p.vx=((k.ArrowRight||k.d)?speed:0)-((k.ArrowLeft||k.a)?speed:0);
+    p.x+=p.vx*dt;
+
+    if((k.ArrowUp||k.w) && p.onGround){
+      p.vy=10;
+      p.onGround=false;
+    }
+
+    p.vy-=0.65*dt;
+    let nextY=p.y+p.vy*dt;
+    let support=null;
+    const solids=(state.world.objects||[]).filter(isSolid);
+
+    for(const o of solids){
+      if(!horizontalOverlap({x:p.x,w:42},o)) continue;
+
+      // Falling onto object.
+      if(p.vy<=0 && p.y>=o.y+o.h-8 && nextY<=o.y+o.h){
+        if(support===null || o.y+o.h>support) support=o.y+o.h;
+      }
+
+      // Jumping into underside.
+      if(p.vy>0 && p.y+92<=o.y+8 && nextY+92>=o.y){
+        nextY=o.y-92;
+        p.vy=0;
+      }
+    }
+
+    if(support!==null){
+      p.y=support;
+      p.vy=0;
+      p.onGround=true;
+    }else{
+      p.y=nextY;
+      p.onGround=false;
+    }
+
+    p.x=Math.max(0,Math.min(900-42,p.x));
+    if(p.y<0){p.y=0;p.vy=0;p.onGround=true;}
+  }
+
+  function render(){
+    const stage=$('splad-playtest-stage'), worldEl=$('splad-playtest-world'), pl=$('splad-playtest-player');
+    if(!stage||!worldEl||!pl||!state.world)return;
+    const sw=stage.clientWidth, sh=stage.clientHeight;
+    const scale=Math.min(sw/950,sh/650);
+    const toScreen=o=>({
+      x:o.x*scale+40,
+      y:sh-(o.y+o.h)*scale-50,
+      w:o.w*scale,
+      h:o.h*scale
+    });
+
+    worldEl.innerHTML='';
+    for(const o of state.world.objects||[]){
+      const q=toScreen(o);
+      const d=document.createElement('div');
+      d.className='splad-pt-object';
+      d.style.left=q.x+'px';
+      d.style.top=q.y+'px';
+      d.style.width=q.w+'px';
+      d.style.height=q.h+'px';
+
+      if(o.type==='tree'){
+        d.className+=' splad-pt-tree';
+        d.innerHTML='<span class="trunk"></span><span class="leaves"></span>';
+      }else if(o.type==='spawn'){
+        d.className+=' splad-pt-spawn';
+        d.textContent='SPAWN';
+      }else if(o.type==='ramp'){
+        d.style.clipPath='polygon(0 100%,100% 100%,100% 0)';
+        d.style.background=o.color||'#1688e8';
+      }else if(o.type==='sign'){
+        d.style.background=o.color||'#7d4b2a';
+        d.innerHTML='<b style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:900 12px Arial">'+
+          String(o.label||'SIGN').replace(/[&<>"']/g,'')+
+          '</b><i style="position:absolute;left:44%;bottom:-28%;width:12%;height:28%;background:#7a4d2a"></i>';
+      }else if(o.type==='dodgeball'){
+        d.style.borderRadius='50%';
+        d.style.background='radial-gradient(circle at 30% 25%,#fff 0 18%,#ddd 19% 36%,#999 37% 58%,#333 59% 100%)';
+        d.style.border='3px solid #222';
+      }else{
+        d.style.background=o.color||'#1688e8';
+      }
+
+      if(o.anchored){
+        d.style.boxShadow='inset 2px 2px 4px rgba(255,255,255,.35),inset -3px -3px 5px rgba(0,0,0,.22),0 0 0 2px rgba(255,255,255,.18)';
+      }
+      worldEl.appendChild(d);
+    }
+
+    const pp=toScreen({x:state.player.x,y:state.player.y,w:42,h:92});
+    pl.style.left=pp.x+'px';
+    pl.style.top=pp.y+'px';
+  }
+
+  function tick(now){
+    if(!state.world)return;
+    const dt=Math.min(1.5,Math.max(.1,(now-state.last)/16.67||1));
+    state.last=now;
+    simulateObjects(dt);
+    playerStep(dt);
+    render();
+    state.raf=requestAnimationFrame(tick);
+  }
+
+  function openWorldPlay(w){
+    if(!w)return;
+    cancelAnimationFrame(state.raf);
+    initPhysicsWorld(w);
+    const name=$('splad-playtest-name');
+    const modal=$('splad-playtest-modal');
+    if(name)name.textContent=w.name+' — PLAY TEST';
+    if(modal){
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+    }
+    render();
+    state.last=performance.now();
+    state.raf=requestAnimationFrame(tick);
+  }
+
+  window.spladPlayPublished=function(id){
+    openWorldPlay(getWorld(id));
+  };
+
+  window.spladBuildPlay=function(){
+    const id=window.__spladCurrentBuildWorldId;
+    openWorldPlay(getWorld(id));
+  };
+
+  window.spladClosePlayTest=function(){
+    cancelAnimationFrame(state.raf);
+    state.raf=0;
+    const modal=$('splad-playtest-modal');
+    if(modal){
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+    }
+    state.world=null;
+  };
+
+  // Keyboard controls for the published-game physics world.
+  if(!window.__spladFinalPhysicsKeys){
+    window.__spladFinalPhysicsKeys=true;
+    document.addEventListener('keydown',e=>{
+      const modal=$('splad-playtest-modal');
+      if(!modal?.classList.contains('open'))return;
+      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','d','w','s',' '].includes(e.key)||e.code==='Space')e.preventDefault();
+      state.keys[e.key]=true;
+      if(e.code==='Space' && state.player.onGround){
+        state.player.vy=10;
+        state.player.onGround=false;
+      }
+    });
+    document.addEventListener('keyup',e=>{
+      if($('splad-playtest-modal')?.classList.contains('open'))state.keys[e.key]=false;
+    });
+  }
+
+  window.addEventListener('resize',()=>{
+    if($('splad-playtest-modal')?.classList.contains('open'))render();
+  });
+})();
+</script>
+
 </body>
 </html>
 <!-- SPLADPAD REAL SERVER LOBBY / CREATOR GAME SERVERS -->
