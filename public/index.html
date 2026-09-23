@@ -1468,6 +1468,30 @@ textarea {
 .splad-undo-btn{position:absolute;right:10px;top:10px;z-index:20;border:2px solid #167bc1;background:#fff;color:#123d69;font-weight:900;border-radius:7px;padding:8px 12px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.12)}
 .splad-gear-used{display:block;margin-top:6px;font-size:11px;font-weight:900;color:#1a7c43}
 </style>
+
+<style id="spladpad-script-editor-visibility-fix">
+.build-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:99990;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    box-sizing:border-box;
+    background:rgba(3,18,34,.78);
+}
+.build-modal.open{
+    display:flex;
+}
+.build-modal-card{
+    width:min(980px,96vw);
+    max-height:90vh;
+    overflow:auto;
+    box-sizing:border-box;
+}
+</style>
+
 </head>
 
 <body>
@@ -2127,7 +2151,7 @@ textarea {
             </div>
         </div>
 
-        <div id="splad-script-modal" class="build-modal" onclick="if(event.target===this)spladBuildCloseScripts()">
+        <div id="splad-script-modal" class="build-modal" style="display:none" onclick="if(event.target===this)spladBuildCloseScripts()">
             <div class="build-modal-card">
                 <div class="build-modal-title">SPLADPAD.BUILD SCRIPT EDITOR</div>
                 <div class="build-script-tabs">
@@ -4390,8 +4414,8 @@ refreshAllBadgeData();
   window.spladBuildPublish=function(){if(!current.world){alert('Create or edit a world first.');return}current.world.published=true;spladBuildSave(false);alert('Your world is marked PUBLISHED.');}
   window.spladBuildThumbnail=function(){if(!current.world)return;const c=$('splad-build-canvas');current.world.thumbnail=c.toDataURL('image/png');spladBuildSave(false);alert('Thumbnail saved to your world.');}
   window.spladBuildPlay=function(){if(!current.world)return;alert('PLAY TEST: your saved world is ready for the next playable-world update.');}
-  window.spladBuildScripts=function(){$('splad-script-modal').classList.add('open');$('splad-html-code').value=current.world?.scripts?.html||'';$('splad-python-code').value=current.world?.scripts?.python||'';spladBuildRunHtml()}
-  window.spladBuildCloseScripts=function(){$('splad-script-modal').classList.remove('open')}
+  window.spladBuildScripts=function(){const m=$('splad-script-modal');if(m){m.style.display='flex';m.classList.add('open');}$('splad-html-code').value=current.world?.scripts?.html||'';$('splad-python-code').value=current.world?.scripts?.python||'';spladBuildRunHtml()}
+  window.spladBuildCloseScripts=function(){const m=$('splad-script-modal');if(m){m.classList.remove('open');m.style.display='none';}}
   window.spladBuildScriptTab=function(tab){$('splad-html-script').style.display=tab==='html'?'block':'none';$('splad-python-script').style.display=tab==='python'?'block':'none';$('splad-tab-html').classList.toggle('active',tab==='html');$('splad-tab-python').classList.toggle('active',tab==='python')}
   window.spladBuildRunHtml=function(){const f=$('splad-html-preview');f.srcdoc=$('splad-html-code').value}
   window.spladBuildSaveScripts=function(){if(!current.world)return;current.world.scripts={html:$('splad-html-code').value,python:$('splad-python-code').value};spladBuildSave(false);alert('Scripts saved with your world.')}
@@ -4935,6 +4959,22 @@ refreshAllBadgeData();
 })();
 </script>
 
+
+<script id="spladpad-shop-coin-refresh-fix">
+(function(){
+  function refresh(){
+    try{
+      if(typeof updateShopCoins==='function')updateShopCoins();
+      if(typeof updateInventory==='function')updateInventory();
+    }catch(_){}
+  }
+  window.addEventListener('load',refresh);
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible')refresh();
+  });
+})();
+</script>
+
 </body>
 </html>
 <!-- SPLADPAD REAL SERVER LOBBY / CREATOR GAME SERVERS -->
@@ -5181,62 +5221,130 @@ refreshAllBadgeData();
 <!-- SPLADPAD QUALITY FIXES -->
 <script id="spladpad-quality-fixes">
 (function(){
-  const ACCOUNT_KEY='spladpad_accounts';
   const currentKey=()=>localStorage.getItem('spladpad_current_user');
-  function accounts(){try{return JSON.parse(localStorage.getItem(ACCOUNT_KEY)||'{}')}catch{return {}}}
-  function save(a){localStorage.setItem(ACCOUNT_KEY,JSON.stringify(a));}
+
+  function accountStore(){
+    try{
+      if(typeof getAccounts==='function') return getAccounts() || {};
+      return JSON.parse(localStorage.getItem('spladpad_accounts')||'{}');
+    }catch(_){return {};}
+  }
+
+  function persist(accounts){
+    if(typeof saveAccounts==='function') saveAccounts(accounts);
+    else localStorage.setItem('spladpad_accounts',JSON.stringify(accounts));
+  }
+
   function autosaveProfile(){
-    const k=currentKey(); if(!k)return;
-    const a=accounts(),u=a[k]; if(!u)return;
+    const k=currentKey();
+    if(!k)return;
+    const a=accountStore(),u=a[k];
+    if(!u)return;
     const bio=document.getElementById('bio-input');
     if(bio)u.bio=bio.value.trim();
-    save(a);
+    persist(a);
   }
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autosaveProfile()});
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='hidden')autosaveProfile();
+  });
   window.addEventListener('pagehide',autosaveProfile);
   window.addEventListener('beforeunload',autosaveProfile);
   window.addEventListener('blur',autosaveProfile);
 
-  // Local shop purchase path fixes the signed-in/shop token problem.
+  // Shop purchase fix:
+  // - subtracts the price from the signed-in player's coins
+  // - adds the item to Inventory
+  // - saves/syncs the account
+  // - refreshes the coin counter and Inventory immediately
+  // - automatically equips the Spladpad Hat
   window.buyItem=function(item,price){
-    const k=currentKey(); if(!k){alert('Please sign in first.');return;}
-    const a=accounts(),u=a[k]; if(!u){alert('Please sign in first.');return;}
+    const k=currentKey();
+    if(!k){alert('Please sign in first.');return;}
+
+    const a=accountStore();
+    const u=a[k];
+    if(!u){alert('Please sign in first.');return;}
+
     if(!Array.isArray(u.inventory))u.inventory=[];
     if(!u.equippedItems||typeof u.equippedItems!=='object')u.equippedItems={};
-    if(item==='Doge Ball')price=1500;
+
+    const prices={
+      'Blue Hat':100,
+      'Star Effect':500,
+      'Doge Ball':1500
+    };
+    if(prices[item]!==undefined)price=prices[item];
+    price=Math.max(0,Number(price)||0);
+
     if(u.inventory.includes(item)){
-      if(item==='Blue Hat'){u.equippedItems.hat='Blue Hat';save(a);if(typeof updateInventory==='function')updateInventory();if(typeof renderEquippedAvatars==='function')renderEquippedAvatars();alert('The Spladpad Hat is already owned and is now equipped.');}
-      else alert('You already own '+item+'.');
+      if(item==='Blue Hat'){
+        u.equippedItems.hat='Blue Hat';
+        persist(a);
+        updateInventory();
+        renderEquippedAvatars();
+        updateShopCoins();
+        alert('The Spladpad Hat is already owned and is now equipped.');
+      }else{
+        alert('You already own '+item+'.');
+      }
       return;
     }
-    if(Number(u.coins||0)<price){alert("You don't have enough coins!");return;}
-    u.coins=Number(u.coins||0)-price;u.inventory.push(item);
-    if(item==='Blue Hat')u.equippedItems.hat='Blue Hat';
-    save(a);
-    if(typeof updateInventory==='function')updateInventory();
-    if(typeof renderEquippedAvatars==='function')renderEquippedAvatars();
-    if(typeof updateShopCoins==='function')updateShopCoins();
+
+    const coins=Number(u.coins)||0;
+    if(coins<price){
+      alert("You don't have enough coins!");
+      return;
+    }
+
+    u.coins=coins-price;
+    u.inventory.push(item);
+
+    if(item==='Blue Hat'){
+      u.equippedItems.hat='Blue Hat';
+    }
+
+    persist(a);
+
+    updateInventory();
+    renderEquippedAvatars();
+    updateShopCoins();
+    if(typeof updateAirSparkles==='function')updateAirSparkles();
     if(typeof applyAvatarColor==='function')applyAvatarColor(u.avatarColor||'blue');
-    alert('You bought '+item+'!');
+
+    alert('You bought '+item+'! '+price+' Splad Coins were spent.');
   };
 
   // Published games remain in Games until their creator deletes them.
   const oldDeleteWorld=window.spladBuildDeleteWorld;
-  if(oldDeleteWorld)window.spladBuildDeleteWorld=function(id){oldDeleteWorld.apply(this,arguments);if(typeof window.renderPublished==='function')window.renderPublished();};
+  if(oldDeleteWorld){
+    window.spladBuildDeleteWorld=function(id){
+      oldDeleteWorld.apply(this,arguments);
+      if(typeof window.renderPublished==='function')window.renderPublished();
+    };
+  }
 
-  // Published games use the same local physics Play Test and never require a server lobby.
+  // Published-game Play button uses the saved world.
   window.spladPlayPublished=function(id){
     try{
       const ws=JSON.parse(localStorage.getItem('spladpad_build_worlds_v1')||'[]');
-      const w=ws.find(x=>x.id===id); if(!w)return;
-      const modal=document.getElementById('splad-server-modal');if(modal)modal.classList.remove('open');
+      const w=ws.find(x=>x.id===id);
+      if(!w)return;
+      const modal=document.getElementById('splad-server-modal');
+      if(modal)modal.classList.remove('open');
       window.__spladCurrentBuildWorldId=id;
       if(typeof window.spladBuildPlay==='function')return window.spladBuildPlay();
-    }catch(e){console.error(e)}
+    }catch(e){console.error(e);}
   };
 
   // Remove the large welcome mascot image.
-  const hideMascot=()=>{const m=document.getElementById('welcome-mascot');if(m)m.remove();const card=document.querySelector('.welcome-mascot-card');if(card)card.remove();};
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hideMascot);else hideMascot();
+  const hideMascot=()=>{
+    const m=document.getElementById('welcome-mascot');
+    if(m)m.remove();
+    const card=document.querySelector('.welcome-mascot-card');
+    if(card)card.remove();
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hideMascot);
+  else hideMascot();
 })();
 </script>
