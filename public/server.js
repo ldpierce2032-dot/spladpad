@@ -82,11 +82,9 @@ CREATE TABLE IF NOT EXISTS game_servers (
 `);
 
 function makeScryptHash(password, saltHex) {
-  return `scrypt$${saltHex}$${crypto.scryptSync(
-    password,
-    Buffer.from(saltHex, 'hex'),
-    64
-  ).toString('hex')}`;
+  return `scrypt$${saltHex}$${crypto
+    .scryptSync(password, Buffer.from(saltHex, 'hex'), 64)
+    .toString('hex')}`;
 }
 
 function verifyPassword(password, stored) {
@@ -112,21 +110,19 @@ function verifyPassword(password, stored) {
   return bcrypt.compareSync(password, stored);
 }
 
-const BUILTIN_ADMINS = {
-  landon:
-    'scrypt$90c444647447808a97aca02b4ada8b85$ad3b8c1ef4afad4178e4aef845c938cd1de9c7c8d8f564699ea64e4a1128fa4baaef3954f48ecf8e9b5381f15df7ffc960098429342d5439fbbd05d92edd9456',
-
-  spladpad:
-    'scrypt$24ac35167b501cbc3a4eea3b10d96933$6bda05cea8045848c2c706d3780a890620fa8ebe32a5a34fed4be7ea93ef770b3bb467136233ed81c2cabbeaf8521fa06680b59783d33a32264c6cc79e8e54a3'
-};
+/*
+  Built-in admins use environment-provided password hashes.
+  Set these in Render environment variables if you use built-in accounts.
+*/
+const BUILTIN_ADMINS = {};
 
 function seedAdmins() {
   const now = Date.now();
 
   const insert = db.prepare(`
     INSERT OR IGNORE INTO users
-    (username,password_hash,joined_at,badges_json)
-    VALUES (?,?,?,?)
+    (username, password_hash, joined_at, badges_json)
+    VALUES (?, ?, ?, ?)
   `);
 
   for (const [name, passwordHash] of Object.entries(BUILTIN_ADMINS)) {
@@ -142,9 +138,11 @@ function seedAdmins() {
         JSON.stringify(['player', 'admin'])
       );
     } else {
-      db.prepare(
-        'UPDATE users SET password_hash=?, badges_json=? WHERE username=?'
-      ).run(
+      db.prepare(`
+        UPDATE users
+        SET password_hash=?, badges_json=?
+        WHERE username=?
+      `).run(
         passwordHash,
         JSON.stringify(['player', 'admin']),
         name
@@ -155,24 +153,24 @@ function seedAdmins() {
 
 seedAdmins();
 
-function parseJSON(v, fallback) {
+function parseJSON(value, fallback) {
   try {
-    return JSON.parse(v);
+    return JSON.parse(value);
   } catch {
     return fallback;
   }
 }
 
 function badgesFor(u) {
-  const b = Array.isArray(u.badges)
+  const badges = Array.isArray(u.badges)
     ? [...new Set(u.badges)]
     : ['player'];
 
-  if (!b.includes('player')) {
-    b.unshift('player');
+  if (!badges.includes('player')) {
+    badges.unshift('player');
   }
 
-  const name = u.username.toLowerCase();
+  const name = String(u.username || '').toLowerCase();
 
   const adminNames = new Set(
     (
@@ -184,24 +182,28 @@ function badgesFor(u) {
       .filter(Boolean)
   );
 
-  if (adminNames.has(name) && !b.includes('admin')) {
-    b.push('admin');
+  if (
+    adminNames.has(name) &&
+    !badges.includes('admin')
+  ) {
+    badges.push('admin');
   }
 
   if (
-    Date.now() - u.joinedAt >=
+    Date.now() - Number(u.joinedAt) >=
       365 * 24 * 60 * 60 * 1000 &&
-    !b.includes('veteran')
+    !badges.includes('veteran')
   ) {
-    b.push('veteran');
+    badges.push('veteran');
   }
 
-  return b;
+  return badges;
 }
 
 function rowToUser(r, includePrivate = false) {
-  const u = {
+  const user = {
     id: r.id,
+    playerNumber: 'SP' + String(r.id).padStart(6, '0'),
     username: r.username,
     bio: r.bio,
     avatarColor: r.avatar_color,
@@ -223,46 +225,43 @@ function rowToUser(r, includePrivate = false) {
     outgoingRequests: []
   };
 
-  const friends = db
-    .prepare(`
-      SELECT u.username
-      FROM friendships f
-      JOIN users u ON u.id=f.friend_id
-      WHERE f.user_id=?
-      ORDER BY u.username
-    `)
+  const friends = db.prepare(`
+    SELECT u.username
+    FROM friendships f
+    JOIN users u ON u.id=f.friend_id
+    WHERE f.user_id=?
+    ORDER BY u.username
+  `)
     .all(r.id)
     .map(x => x.username.toLowerCase());
 
-  const incoming = db
-    .prepare(`
-      SELECT u.username
-      FROM friend_requests fr
-      JOIN users u ON u.id=fr.sender_id
-      WHERE fr.receiver_id=?
-    `)
+  const incoming = db.prepare(`
+    SELECT u.username
+    FROM friend_requests fr
+    JOIN users u ON u.id=fr.sender_id
+    WHERE fr.receiver_id=?
+  `)
     .all(r.id)
     .map(x => x.username.toLowerCase());
 
-  const outgoing = db
-    .prepare(`
-      SELECT u.username
-      FROM friend_requests fr
-      JOIN users u ON u.id=fr.receiver_id
-      WHERE fr.sender_id=?
-    `)
+  const outgoing = db.prepare(`
+    SELECT u.username
+    FROM friend_requests fr
+    JOIN users u ON u.id=fr.receiver_id
+    WHERE fr.sender_id=?
+  `)
     .all(r.id)
     .map(x => x.username.toLowerCase());
 
-  u.friends = friends;
-  u.incomingRequests = incoming;
-  u.outgoingRequests = outgoing;
+  user.friends = friends;
+  user.incomingRequests = incoming;
+  user.outgoingRequests = outgoing;
 
   if (includePrivate) {
-    u.passwordHash = r.password_hash;
+    user.passwordHash = r.password_hash;
   }
 
-  return u;
+  return user;
 }
 
 function publicState() {
@@ -277,9 +276,9 @@ function publicState() {
   }
 
   const msg =
-    db
-      .prepare('SELECT value FROM settings WHERE key="global_message"')
-      .get()?.value || '';
+    db.prepare(
+      'SELECT value FROM settings WHERE key="global_message"'
+    ).get()?.value || '';
 
   return {
     accounts,
@@ -301,10 +300,10 @@ function tokenFor(r) {
 }
 
 function auth(req, res, next) {
-  const h = req.headers.authorization || '';
+  const header = req.headers.authorization || '';
 
-  const token = h.startsWith('Bearer ')
-    ? h.slice(7)
+  const token = header.startsWith('Bearer ')
+    ? header.slice(7)
     : '';
 
   try {
@@ -314,7 +313,9 @@ function auth(req, res, next) {
       .prepare('SELECT * FROM users WHERE id=?')
       .get(req.user.sub);
 
-    if (!r) throw new Error('missing');
+    if (!r) {
+      throw new Error('missing');
+    }
 
     if (r.banned) {
       return res.status(403).json({
@@ -325,7 +326,7 @@ function auth(req, res, next) {
 
     req.row = r;
     next();
-  } catch (e) {
+  } catch {
     return res.status(401).json({
       error: 'Not signed in'
     });
@@ -333,23 +334,30 @@ function auth(req, res, next) {
 }
 
 function isAdmin(r) {
-  const n = String(r.username || '').toLowerCase();
+  const name = String(r.username || '').toLowerCase();
 
-  return (
-    n === 'landon' ||
-    n === 'spladpad' ||
-    n === 'landon_pierce' ||
-    n === 'player1' ||
+  const adminNames = new Set(
+    (
+      process.env.ADMIN_USERNAMES ||
+      'landon,spladpad,landon_pierce,player1'
+    )
+      .split(',')
+      .map(x => x.trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  return adminNames.has(name) ||
     badgesFor({
       username: r.username,
       joinedAt: r.joined_at,
       badges: parseJSON(r.badges_json, ['player'])
-    }).includes('admin')
-  );
+    }).includes('admin');
 }
 
 function safeName(n) {
-  return String(n || '').trim().toLowerCase();
+  return String(n || '')
+    .trim()
+    .toLowerCase();
 }
 
 const app = express();
@@ -441,11 +449,9 @@ app.post('/api/register', (req, res) => {
   }
 
   if (
-    db
-      .prepare(
-        'SELECT id FROM users WHERE username=?'
-      )
-      .get(key)
+    db.prepare(
+      'SELECT id FROM users WHERE username=?'
+    ).get(key)
   ) {
     return res.status(409).json({
       error:
@@ -454,27 +460,26 @@ app.post('/api/register', (req, res) => {
   }
 
   const now = Date.now();
-
   const hash = bcrypt.hashSync(
     password,
     12
   );
 
-  const info = db
-    .prepare(`
-      INSERT INTO users
-      (username,password_hash,joined_at,badges_json)
-      VALUES (?,?,?,?)
-    `)
-    .run(
-      username,
-      hash,
-      now,
-      JSON.stringify(['player'])
-    );
+  const info = db.prepare(`
+    INSERT INTO users
+    (username,password_hash,joined_at,badges_json)
+    VALUES(?,?,?,?)
+  `).run(
+    username,
+    hash,
+    now,
+    JSON.stringify(['player'])
+  );
 
   const r = db
-    .prepare('SELECT * FROM users WHERE id=?')
+    .prepare(
+      'SELECT * FROM users WHERE id=?'
+    )
     .get(info.lastInsertRowid);
 
   res.json({
@@ -508,8 +513,7 @@ app.post('/api/login', (req, res) => {
     )
   ) {
     return res.status(401).json({
-      error:
-        'Invalid username or password.'
+      error: 'Invalid username or password.'
     });
   }
 
@@ -532,6 +536,36 @@ app.get('/api/state', auth, (req, res) => {
   res.json(publicState());
 });
 
+app.get('/api/players', auth, (req, res) => {
+  const q = String(
+    req.query.q || ''
+  ).trim().toLowerCase();
+
+  const rows = db
+    .prepare(
+      'SELECT * FROM users ORDER BY username'
+    )
+    .all();
+
+  const players = rows
+    .map(r => rowToUser(r))
+    .filter(user => {
+      return (
+        !q ||
+        user.username
+          .toLowerCase()
+          .includes(q) ||
+        user.playerNumber
+          .toLowerCase()
+          .includes(q)
+      );
+    });
+
+  res.json({
+    players
+  });
+});
+
 function applySelfChanges(r, incoming) {
   const current = rowToUser(r);
 
@@ -540,16 +574,17 @@ function applySelfChanges(r, incoming) {
       ? incoming.bio.slice(0, 500)
       : current.bio;
 
-  const color = [
-    'blue',
-    'red',
-    'green',
-    'purple',
-    'yellow',
-    'black'
-  ].includes(incoming.avatarColor)
-    ? incoming.avatarColor
-    : current.avatarColor;
+  const color =
+    [
+      'blue',
+      'red',
+      'green',
+      'purple',
+      'yellow',
+      'black'
+    ].includes(incoming.avatarColor)
+      ? incoming.avatarColor
+      : current.avatarColor;
 
   const avatarType =
     typeof incoming.avatarType === 'string'
@@ -564,10 +599,11 @@ function applySelfChanges(r, incoming) {
 
   db.prepare(`
     UPDATE users
-    SET bio=?,
-        avatar_color=?,
-        avatar_type=?,
-        equipped_json=?
+    SET
+      bio=?,
+      avatar_color=?,
+      avatar_type=?,
+      equipped_json=?
     WHERE id=?
   `).run(
     bio,
@@ -583,7 +619,9 @@ function syncSocial(currentId, accounts) {
     .prepare('SELECT * FROM users WHERE id=?')
     .get(currentId);
 
-  const me = safeName(current.username);
+  const me = safeName(
+    current.username
+  );
 
   const tx = db.transaction(() => {
     for (
@@ -617,9 +655,7 @@ function syncSocial(currentId, accounts) {
       );
 
       const newIn = new Set(
-        Array.isArray(
-          a.incomingRequests
-        )
+        Array.isArray(a.incomingRequests)
           ? a.incomingRequests.map(safeName)
           : old.incomingRequests
       );
@@ -629,9 +665,7 @@ function syncSocial(currentId, accounts) {
       );
 
       const newOut = new Set(
-        Array.isArray(
-          a.outgoingRequests
-        )
+        Array.isArray(a.outgoingRequests)
           ? a.outgoingRequests.map(safeName)
           : old.outgoingRequests
       );
@@ -642,8 +676,7 @@ function syncSocial(currentId, accounts) {
           ...newF
         ])
       ].filter(
-        x =>
-          oldF.has(x) !== newF.has(x)
+        x => oldF.has(x) !== newF.has(x)
       );
 
       const inChanges = [
@@ -652,8 +685,7 @@ function syncSocial(currentId, accounts) {
           ...newIn
         ])
       ].filter(
-        x =>
-          oldIn.has(x) !== newIn.has(x)
+        x => oldIn.has(x) !== newIn.has(x)
       );
 
       const outChanges = [
@@ -662,8 +694,7 @@ function syncSocial(currentId, accounts) {
           ...newOut
         ])
       ].filter(
-        x =>
-          oldOut.has(x) !== newOut.has(x)
+        x => oldOut.has(x) !== newOut.has(x)
       );
 
       if (
@@ -721,9 +752,10 @@ function syncSocial(currentId, accounts) {
 
           if (newOut.has(person)) {
             db.prepare(`
-              INSERT OR IGNORE INTO friend_requests
+              INSERT OR IGNORE INTO
+              friend_requests
               (sender_id,receiver_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               currentId,
               other.id,
@@ -753,9 +785,10 @@ function syncSocial(currentId, accounts) {
 
           if (newIn.has(person)) {
             db.prepare(`
-              INSERT OR IGNORE INTO friend_requests
+              INSERT OR IGNORE INTO
+              friend_requests
               (sender_id,receiver_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               other.id,
               currentId,
@@ -787,7 +820,7 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               INSERT OR IGNORE INTO friendships
               (user_id,friend_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               currentId,
               other.id,
@@ -797,7 +830,7 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               INSERT OR IGNORE INTO friendships
               (user_id,friend_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               other.id,
               currentId,
@@ -807,9 +840,9 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               DELETE FROM friend_requests
               WHERE
-              (sender_id=? AND receiver_id=?)
-              OR
-              (sender_id=? AND receiver_id=?)
+                (sender_id=? AND receiver_id=?)
+                OR
+                (sender_id=? AND receiver_id=?)
             `).run(
               currentId,
               other.id,
@@ -820,9 +853,9 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               DELETE FROM friendships
               WHERE
-              (user_id=? AND friend_id=?)
-              OR
-              (user_id=? AND friend_id=?)
+                (user_id=? AND friend_id=?)
+                OR
+                (user_id=? AND friend_id=?)
             `).run(
               currentId,
               other.id,
@@ -839,14 +872,12 @@ function syncSocial(currentId, accounts) {
         const person = me;
         const other = target;
 
-        if (
-          friendChanges.includes(person)
-        ) {
+        if (friendChanges.includes(person)) {
           if (newF.has(person)) {
             db.prepare(`
               INSERT OR IGNORE INTO friendships
               (user_id,friend_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               other.id,
               currentId,
@@ -856,7 +887,7 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               INSERT OR IGNORE INTO friendships
               (user_id,friend_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               currentId,
               other.id,
@@ -866,9 +897,9 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               DELETE FROM friend_requests
               WHERE
-              (sender_id=? AND receiver_id=?)
-              OR
-              (sender_id=? AND receiver_id=?)
+                (sender_id=? AND receiver_id=?)
+                OR
+                (sender_id=? AND receiver_id=?)
             `).run(
               currentId,
               other.id,
@@ -879,9 +910,9 @@ function syncSocial(currentId, accounts) {
             db.prepare(`
               DELETE FROM friendships
               WHERE
-              (user_id=? AND friend_id=?)
-              OR
-              (user_id=? AND friend_id=?)
+                (user_id=? AND friend_id=?)
+                OR
+                (user_id=? AND friend_id=?)
             `).run(
               currentId,
               other.id,
@@ -891,14 +922,13 @@ function syncSocial(currentId, accounts) {
           }
         }
 
-        if (
-          inChanges.includes(person)
-        ) {
+        if (inChanges.includes(person)) {
           if (newIn.has(person)) {
             db.prepare(`
-              INSERT OR IGNORE INTO friend_requests
+              INSERT OR IGNORE INTO
+              friend_requests
               (sender_id,receiver_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               currentId,
               other.id,
@@ -915,14 +945,13 @@ function syncSocial(currentId, accounts) {
           }
         }
 
-        if (
-          outChanges.includes(person)
-        ) {
+        if (outChanges.includes(person)) {
           if (newOut.has(person)) {
             db.prepare(`
-              INSERT OR IGNORE INTO friend_requests
+              INSERT OR IGNORE INTO
+              friend_requests
               (sender_id,receiver_id,created_at)
-              VALUES (?,?,?)
+              VALUES(?,?,?)
             `).run(
               other.id,
               currentId,
@@ -952,7 +981,8 @@ app.post('/api/sync', auth, (req, res) => {
   const me =
     safeName(req.row.username);
 
-  const meData = accounts[me];
+  const meData =
+    accounts[me];
 
   if (!meData) {
     return res.status(400).json({
@@ -975,8 +1005,9 @@ app.post('/api/sync', auth, (req, res) => {
 });
 
 app.post('/api/purchase', auth, (req, res) => {
-  const item =
-    String(req.body.item || '');
+  const item = String(
+    req.body.item || ''
+  );
 
   const price =
     Number(req.body.price);
@@ -990,8 +1021,7 @@ app.post('/api/purchase', auth, (req, res) => {
     price !== allowed[item]
   ) {
     return res.status(400).json({
-      error:
-        'Invalid shop item.'
+      error: 'Invalid shop item.'
     });
   }
 
@@ -1001,27 +1031,27 @@ app.post('/api/purchase', auth, (req, res) => {
     )
     .get(req.row.id);
 
-  const inv =
+  const inventory =
     parseJSON(
       r.inventory_json,
       []
     );
 
-  const eq =
+  const equipped =
     parseJSON(
       r.equipped_json,
       {}
     );
 
-  if (inv.includes(item)) {
-    eq.hat = item;
+  if (inventory.includes(item)) {
+    equipped.hat = item;
 
     db.prepare(`
       UPDATE users
       SET equipped_json=?
       WHERE id=?
     `).run(
-      JSON.stringify(eq),
+      JSON.stringify(equipped),
       r.id
     );
   } else {
@@ -1032,20 +1062,20 @@ app.post('/api/purchase', auth, (req, res) => {
       });
     }
 
-    inv.push(item);
-    eq.hat = item;
+    inventory.push(item);
+    equipped.hat = item;
 
     db.prepare(`
       UPDATE users
       SET
-      coins=coins-?,
-      inventory_json=?,
-      equipped_json=?
+        coins=coins-?,
+        inventory_json=?,
+        equipped_json=?
       WHERE id=?
     `).run(
       price,
-      JSON.stringify(inv),
-      JSON.stringify(eq),
+      JSON.stringify(inventory),
+      JSON.stringify(equipped),
       r.id
     );
   }
@@ -1071,18 +1101,16 @@ app.post(
       });
     }
 
-    const msg =
-      String(
-        req.body.message || ''
-      )
-        .trim()
-        .slice(0, 1000);
+    const msg = String(
+      req.body.message || ''
+    )
+      .trim()
+      .slice(0, 1000);
 
     if (msg) {
       db.prepare(`
-        INSERT INTO settings
-        (key,value)
-        VALUES ("global_message",?)
+        INSERT INTO settings(key,value)
+        VALUES("global_message",?)
         ON CONFLICT(key)
         DO UPDATE SET value=excluded.value
       `).run(msg);
@@ -1093,7 +1121,9 @@ app.post(
       `).run();
     }
 
-    res.json(publicState());
+    res.json(
+      publicState()
+    );
   }
 );
 
@@ -1140,25 +1170,29 @@ app.post(
       });
     }
 
-    const b = new Set(
+    const badges = new Set(
       parseJSON(
         r.badges_json,
         ['player']
       )
     );
 
-    b.add(badge);
+    badges.add(badge);
 
     db.prepare(`
       UPDATE users
       SET badges_json=?
       WHERE id=?
     `).run(
-      JSON.stringify([...b]),
+      JSON.stringify([
+        ...badges
+      ]),
       r.id
     );
 
-    res.json(publicState());
+    res.json(
+      publicState()
+    );
   }
 );
 
@@ -1211,7 +1245,9 @@ app.post(
       r.id
     );
 
-    res.json(publicState());
+    res.json(
+      publicState()
+    );
   }
 );
 
@@ -1255,9 +1291,9 @@ app.post(
     db.prepare(`
       UPDATE users
       SET
-      banned=1,
-      ban_reason=?,
-      banned_at=?
+        banned=1,
+        ban_reason=?,
+        banned_at=?
       WHERE id=?
     `).run(
       String(
@@ -1268,7 +1304,9 @@ app.post(
       r.id
     );
 
-    res.json(publicState());
+    res.json(
+      publicState()
+    );
   }
 );
 
@@ -1303,19 +1341,22 @@ app.post(
     db.prepare(`
       UPDATE users
       SET
-      banned=0,
-      ban_reason="",
-      banned_at=NULL
+        banned=0,
+        ban_reason="",
+        banned_at=NULL
       WHERE id=?
     `).run(r.id);
 
-    res.json(publicState());
+    res.json(
+      publicState()
+    );
   }
 );
 
-// ========================================
-// SPLADPAD CREATOR WORLDS + GAME SERVERS
-// ========================================
+// =========================
+// SPLADPAD CREATOR WORLDS
+// + GAME SERVERS
+// =========================
 
 function cleanWorld(world) {
   if (
@@ -1328,8 +1369,9 @@ function cleanWorld(world) {
   }
 
   const id =
-    String(world.id || '')
-      .slice(0, 80);
+    String(
+      world.id || ''
+    ).slice(0, 80);
 
   if (!id) {
     throw new Error(
@@ -1347,8 +1389,7 @@ function cleanWorld(world) {
     'My Spladpad World';
 
   const thumbnail =
-    typeof world.thumbnail ===
-    'string'
+    typeof world.thumbnail === 'string'
       ? world.thumbnail.slice(
           0,
           800000
@@ -1357,8 +1398,7 @@ function cleanWorld(world) {
 
   const scripts =
     world.scripts &&
-    typeof world.scripts ===
-      'object'
+    typeof world.scripts === 'object'
       ? world.scripts
       : {};
 
@@ -1370,36 +1410,28 @@ function cleanWorld(world) {
             id: String(
               o.id || ''
             ).slice(0, 80),
-
             type: String(
               o.type || 'block'
             ).slice(0, 30),
-
             x: Number(o.x) || 0,
             y: Number(o.y) || 0,
-
             w: Math.max(
               1,
               Number(o.w) || 50
             ),
-
             h: Math.max(
               1,
               Number(o.h) || 50
             ),
-
             color:
-              typeof o.color ===
-              'string'
+              typeof o.color === 'string'
                 ? o.color.slice(
                     0,
                     30
                   )
                 : '#1688e8',
-
             anchored:
               !!o.anchored,
-
             label:
               String(
                 o.label || ''
@@ -1423,31 +1455,47 @@ function cleanWorld(world) {
     published:
       !!world.published,
     thumbnail,
-
     scripts: {
       html: String(
         scripts.html || ''
-      ).slice(0, 200000),
-
+      ).slice(
+        0,
+        200000
+      ),
       python: String(
         scripts.python || ''
-      ).slice(0, 200000)
+      ).slice(
+        0,
+        200000
+      )
     },
-
     objects,
     connections
   };
 }
 
 function publishedWorldRow(r) {
+  const owner = db
+    .prepare(
+      'SELECT username FROM users WHERE id=?'
+    )
+    .get(r.owner_id);
+
   return {
     id: r.world_id,
-    ownerId: r.owner_id,
+    ownerId:
+      r.owner_id,
+    ownerUsername:
+      owner?.username ||
+      'Creator',
     name: r.name,
-    thumbnail: r.thumbnail,
+    thumbnail:
+      r.thumbnail,
     published: true,
-    publishedAt: r.published_at,
-    updatedAt: r.updated_at,
+    publishedAt:
+      r.published_at,
+    updatedAt:
+      r.updated_at,
     world: parseJSON(
       r.world_json,
       {}
@@ -1491,7 +1539,8 @@ app.post(
       });
     }
 
-    const now = Date.now();
+    const now =
+      Date.now();
 
     db.prepare(`
       INSERT INTO published_worlds
@@ -1504,7 +1553,7 @@ app.post(
         published_at,
         updated_at
       )
-      VALUES (?,?,?,?,?,?,?)
+      VALUES(?,?,?,?,?,?,?)
 
       ON CONFLICT(world_id)
       DO UPDATE SET
@@ -1524,12 +1573,11 @@ app.post(
     );
 
     res.json({
-      world:
-        publishedWorldRow(
-          db.prepare(
-            'SELECT * FROM published_worlds WHERE world_id=?'
-          ).get(world.id)
-        )
+      world: publishedWorldRow(
+        db.prepare(
+          'SELECT * FROM published_worlds WHERE world_id=?'
+        ).get(world.id)
+      )
     });
   }
 );
@@ -1577,14 +1625,9 @@ app.post(
     `).run(id);
 
     for (
-      const [
-        sid,
-        room
-      ] of liveServers
+      const [sid, room] of liveServers
     ) {
-      if (
-        room.worldId === id
-      ) {
+      if (room.worldId === id) {
         for (
           const client of room.clients
         ) {
@@ -1621,20 +1664,20 @@ function serverSummary(r) {
     );
 
   return {
-    id: r.server_id,
-    worldId: r.world_id,
-    name: r.server_name,
+    id:
+      r.server_id,
+    worldId:
+      r.world_id,
+    name:
+      r.server_name,
     maxPlayers:
       r.max_players,
-
     players:
       room
         ? room.clients.size
         : 0,
-
     ownerId:
       r.owner_id,
-
     createdAt:
       r.created_at
   };
@@ -1659,22 +1702,17 @@ app.get(
 
     const rows =
       worldId
-        ? db
-            .prepare(`
-              SELECT *
-              FROM game_servers
-              WHERE world_id=?
-              ORDER BY created_at DESC
-            `)
-            .all(worldId)
-
-        : db
-            .prepare(`
-              SELECT *
-              FROM game_servers
-              ORDER BY created_at DESC
-            `)
-            .all();
+        ? db.prepare(`
+            SELECT *
+            FROM game_servers
+            WHERE world_id=?
+            ORDER BY created_at DESC
+          `).all(worldId)
+        : db.prepare(`
+            SELECT *
+            FROM game_servers
+            ORDER BY created_at DESC
+          `).all();
 
     res.json({
       servers:
@@ -1695,9 +1733,11 @@ app.post(
       );
 
     const world =
-      db.prepare(
-        'SELECT * FROM published_worlds WHERE world_id=?'
-      ).get(worldId);
+      db.prepare(`
+        SELECT *
+        FROM published_worlds
+        WHERE world_id=?
+      `).get(worldId);
 
     if (!world) {
       return res.status(404).json({
@@ -1757,7 +1797,7 @@ app.post(
         created_at,
         last_active_at
       )
-      VALUES (?,?,?,?,?,?,?)
+      VALUES(?,?,?,?,?,?,?)
     `).run(
       serverId,
       worldId,
@@ -1784,9 +1824,11 @@ app.post(
     res.json({
       server:
         serverSummary(
-          db.prepare(
-            'SELECT * FROM game_servers WHERE server_id=?'
-          ).get(serverId)
+          db.prepare(`
+            SELECT *
+            FROM game_servers
+            WHERE server_id=?
+          `).get(serverId)
         )
     });
   }
@@ -1802,9 +1844,11 @@ app.post(
       );
 
     const r =
-      db.prepare(
-        'SELECT * FROM game_servers WHERE server_id=?'
-      ).get(id);
+      db.prepare(`
+        SELECT *
+        FROM game_servers
+        WHERE server_id=?
+      `).get(id);
 
     if (!r) {
       return res.status(404).json({
@@ -1824,7 +1868,9 @@ app.post(
     }
 
     const room =
-      liveServers.get(id);
+      liveServers.get(
+        id
+      );
 
     if (room) {
       for (
@@ -1844,7 +1890,9 @@ app.post(
         } catch {}
       }
 
-      liveServers.delete(id);
+      liveServers.delete(
+        id
+      );
     }
 
     db.prepare(`
@@ -1867,17 +1915,15 @@ app.use(
   )
 );
 
-app.get(
-  '*',
-  (req, res) =>
-    res.sendFile(
-      path.join(
-        __dirname,
-        'public',
-        'index.html'
-      )
+app.get('*', (req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      'public',
+      'index.html'
     )
-);
+  );
+});
 
 const server =
   http.createServer(app);
@@ -1931,7 +1977,9 @@ function broadcastRoom(
       client !== except &&
       client.ws.readyState === 1
     ) {
-      client.ws.send(text);
+      client.ws.send(
+        text
+      );
     }
   }
 }
@@ -1942,21 +1990,22 @@ function roomState(room) {
   ].map(c => ({
     id:
       c.playerId,
-
+    playerNumber:
+      c.playerNumber,
     username:
       c.username,
-
     avatarColor:
       c.avatarColor,
-
     x:
       c.x || 0,
-
     y:
       c.y || 0,
-
     equippedItems:
-      c.equippedItems || {}
+      c.equippedItems ||
+      {},
+    badges:
+      c.badges ||
+      ['player']
   }));
 }
 
@@ -1971,9 +2020,7 @@ wss.on(
       raw => {
         try {
           const msg =
-            JSON.parse(
-              raw
-            );
+            JSON.parse(raw);
 
           if (
             msg.type === 'join'
@@ -2056,13 +2103,10 @@ wss.on(
                 {
                   worldId:
                     dbRoom.world_id,
-
                   ownerId:
                     dbRoom.owner_id,
-
                   clients:
                     new Set(),
-
                   createdAt:
                     dbRoom.created_at
                 }
@@ -2092,7 +2136,6 @@ wss.on(
 
             player = {
               ws,
-
               playerId:
                 crypto
                   .randomBytes(
@@ -2101,19 +2144,35 @@ wss.on(
                   .toString(
                     'hex'
                   ),
-
+              playerNumber:
+                'SP' +
+                String(
+                  user.id
+                ).padStart(
+                  6,
+                  '0'
+                ),
               username:
                 user.username,
-
               avatarColor:
                 user.avatar_color,
-
               equippedItems:
                 parseJSON(
                   user.equipped_json,
                   {}
                 ),
-
+              badges:
+                badgesFor({
+                  username:
+                    user.username,
+                  joinedAt:
+                    user.joined_at,
+                  badges:
+                    parseJSON(
+                      user.badges_json,
+                      ['player']
+                    )
+                }),
               x: 60,
               y: 0
             };
@@ -2135,20 +2194,16 @@ wss.on(
               JSON.stringify({
                 type:
                   'joined',
-
                 server:
                   serverSummary(
                     dbRoom
                   ),
-
                 world:
                   publishedWorldRow(
                     published
                   ),
-
                 playerId:
                   player.playerId,
-
                 players:
                   roomState(
                     room
@@ -2161,25 +2216,23 @@ wss.on(
               {
                 type:
                   'player:joined',
-
                 player: {
                   id:
                     player.playerId,
-
+                  playerNumber:
+                    player.playerNumber,
                   username:
                     player.username,
-
                   avatarColor:
                     player.avatarColor,
-
                   x:
                     player.x,
-
                   y:
                     player.y,
-
                   equippedItems:
-                    player.equippedItems
+                    player.equippedItems,
+                  badges:
+                    player.badges
                 }
               },
               ws
@@ -2226,25 +2279,23 @@ wss.on(
               {
                 type:
                   'player:update',
-
                 player: {
                   id:
                     player.playerId,
-
+                  playerNumber:
+                    player.playerNumber,
                   username:
                     player.username,
-
                   avatarColor:
                     player.avatarColor,
-
                   x:
                     player.x,
-
                   y:
                     player.y,
-
                   equippedItems:
-                    player.equippedItems
+                    player.equippedItems,
+                  badges:
+                    player.badges
                 }
               },
               ws
@@ -2252,7 +2303,7 @@ wss.on(
 
             const serverId =
               [
-                ...liveServers
+                ...liveServers.entries()
               ].find(
                 ([, v]) =>
                   v === room
@@ -2268,9 +2319,7 @@ wss.on(
                 serverId
               );
             }
-          }
-
-          else if (
+          } else if (
             msg.type ===
             'game:event'
           ) {
@@ -2279,21 +2328,18 @@ wss.on(
               {
                 type:
                   'game:event',
-
                 event:
                   msg.event ||
                   null,
-
                 data:
                   msg.data ||
                   null
               },
               ws
             );
-          }
-
-          else if (
-            msg.type === 'ping'
+          } else if (
+            msg.type ===
+            'ping'
           ) {
             ws.send(
               JSON.stringify({
@@ -2322,7 +2368,6 @@ wss.on(
             {
               type:
                 'player:left',
-
               playerId:
                 player.playerId
             }
@@ -2330,7 +2375,7 @@ wss.on(
 
           const serverId =
             [
-              ...liveServers
+              ...liveServers.entries()
             ].find(
               ([, v]) =>
                 v === room
@@ -2348,8 +2393,7 @@ wss.on(
           }
 
           if (
-            room.clients.size ===
-              0 &&
+            room.clients.size === 0 &&
             serverId
           ) {
             liveServers.delete(
@@ -2362,6 +2406,8 @@ wss.on(
   }
 );
 
+// Remove abandoned server records
+// after 24 hours with no activity.
 setInterval(
   () => {
     const cutoff =
