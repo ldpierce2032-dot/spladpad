@@ -1559,15 +1559,6 @@ textarea {
         </div>
 
         <div
-            id="admin-nav-item"
-            class="side-item"
-            style="display:none"
-            onclick="showPage('admin',this)"
-        >
-            <span class="nav-icon icon-build"></span>Admin Panel
-        </div>
-
-        <div
             class="side-item"
             onclick="openBuildStudio(this)"
         >
@@ -2044,58 +2035,6 @@ textarea {
         </div>
 
 
-
-        <!-- =========================
-             ADMIN PANEL
-             ========================= -->
-        <div id="page-admin" class="page">
-            <div class="dashboard-panel admin-only-panel">
-                <div class="panel-title">ADMIN PANEL</div>
-                <p class="admin-security-note">
-                    Admin controls are available only when the current player has the <strong>ADMIN</strong> badge.
-                </p>
-
-                <div class="admin-section">
-                    <div class="admin-section-title">GLOBAL MESSAGE</div>
-                    <textarea id="admin-global-message" class="admin-textarea" placeholder="Write a message for everyone on Spladpad..."></textarea>
-                    <div class="admin-button-row">
-                        <button class="action-btn" onclick="adminPostGlobalMessage()">POST GLOBAL MESSAGE</button>
-                        <button class="friend-btn remove" onclick="adminClearGlobalMessage()">CLEAR MESSAGE</button>
-                    </div>
-                </div>
-
-                <div class="admin-section">
-                    <div class="admin-section-title">PLAYER MANAGEMENT</div>
-                    <input id="admin-player-search" class="input-field" type="text" placeholder="Search username..." onkeydown="if(event.key==='Enter') adminSearchPlayers()">
-                    <button class="small-btn" onclick="adminSearchPlayers()">SEARCH PLAYER</button>
-                    <div id="admin-player-results" class="admin-results"></div>
-                </div>
-
-                <div class="admin-section">
-                    <div class="admin-section-title">GIVE BADGE</div>
-                    <div class="admin-inline-form">
-                        <input id="admin-badge-user" class="input-field" type="text" placeholder="Username">
-                        <select id="admin-badge-type" class="input-field">
-                            <option value="player">PLAYER</option>
-                            <option value="admin">ADMIN</option>
-                            <option value="veteran">VETERAN</option>
-                        </select>
-                        <button class="small-btn" onclick="adminGiveBadge()">GIVE BADGE</button>
-                    </div>
-                </div>
-
-                <div class="admin-section">
-                    <div class="admin-section-title">GIVE SPLAD COINS</div>
-                    <div class="admin-inline-form">
-                        <input id="admin-coins-user" class="input-field" type="text" placeholder="Username">
-                        <input id="admin-coins-amount" class="input-field" type="number" min="1" step="1" placeholder="Amount">
-                        <button class="small-btn" onclick="adminGiveCoins()">GIVE COINS</button>
-                    </div>
-                </div>
-
-                <div id="admin-status" class="admin-status"></div>
-            </div>
-        </div>
 
         <!-- =========================
              BUILD STUDIO
@@ -2579,15 +2518,6 @@ function applyAvatarColor(color) {
 
     let filter = "none";
 
-    // New starter players use the exact blue Doge Ball character avatar.
-    if (currentAccount && currentAccount.avatarType === "starter") {
-        images.forEach(function(img) {
-            img.style.filter = "none";
-        });
-        return;
-    }
-
-
     if (color === "red") {
 
         filter =
@@ -2992,7 +2922,7 @@ function ensureBadgeData(account) {
 
     // Admin badge is reserved for the Spladpad developers.
     const name = String(account.username || "").toLowerCase();
-    if ((name === "landon" || name === "spladpad" || name === "landon_pierce") && !account.badges.includes("admin")) {
+    if ((name === "landon" || name === "spladpad" || name === "landon_pierce" || name === "player1") && !account.badges.includes("admin")) {
         account.badges.push("admin");
     }
 
@@ -4012,268 +3942,32 @@ window.addEventListener(
 
 <script>
 /* =========================================
-   ADMIN SECURITY + ADMIN PANEL
+   ADMIN SECURITY
    ========================================= */
-
-function currentAccount() {
-    const current = localStorage.getItem("spladpad_current_user");
-    const accounts = getAccounts();
-    return current && accounts[current] ? accounts[current] : null;
+function currentAccount(){
+  const current=localStorage.getItem("spladpad_current_user");
+  const accounts=getAccounts();
+  return current && accounts[current] ? accounts[current] : null;
 }
-
-function hasAdminBadge(account) {
-    if (!account) return false;
-    ensureBadgeData(account);
-    const name = String(account.username || "").toLowerCase();
-    return name === "landon" || name === "spladpad" || name === "landon_pierce" || (Array.isArray(account.badges) && account.badges.includes("admin"));
+function hasAdminBadge(account){
+  if(!account) return false;
+  ensureBadgeData(account);
+  const name=String(account.username||"").toLowerCase();
+  return name==="landon" || name==="spladpad" || name==="landon_pierce" || name==="player1" || (Array.isArray(account.badges)&&account.badges.includes("admin"));
 }
-
-function requireAdmin() {
-    const account = currentAccount();
-    if (!hasAdminBadge(account)) {
-        alert("You need the ADMIN badge to use this panel.");
-        showPageByName("home");
-        return false;
-    }
-    return true;
-}
-
-function updateAdminAccess() {
-    const nav = document.getElementById("admin-nav-item");
-    const account = currentAccount();
-    const allowed = hasAdminBadge(account);
-    if (nav) nav.style.display = allowed ? "block" : "none";
-
-    const adminPage = document.getElementById("page-admin");
-    if (adminPage && !allowed && adminPage.classList.contains("active")) {
-        showPageByName("home");
-    }
-}
-
-function setAdminStatus(message, good) {
-    const el = document.getElementById("admin-status");
-    if (!el) return;
-    el.textContent = message || "";
-    el.style.color = good ? "#16713b" : "#a12626";
-}
-
-function getGlobalMessage() {
-    return localStorage.getItem("spladpad_global_message") || "";
-}
-
-function renderGlobalMessage() {
-    const el = document.getElementById("global-message-banner");
-    if (!el) return;
-    const msg = getGlobalMessage();
-    if (!msg) {
-        el.style.display = "none";
-        el.textContent = "";
-        return;
-    }
-    el.textContent = "GLOBAL MESSAGE: " + msg;
-    el.style.display = "block";
-}
-
-function adminPostGlobalMessage() {
-    if (!requireAdmin()) return;
-    const input = document.getElementById("admin-global-message");
-    const msg = input ? input.value.trim() : "";
-    if (!msg) {
-        setAdminStatus("Write a message first.", false);
-        return;
-    }
-    localStorage.setItem("spladpad_global_message", msg);
-    renderGlobalMessage();
-    setAdminStatus("Global message posted.", true);
-}
-
-function adminClearGlobalMessage() {
-    if (!requireAdmin()) return;
-    localStorage.removeItem("spladpad_global_message");
-    const input = document.getElementById("admin-global-message");
-    if (input) input.value = "";
-    renderGlobalMessage();
-    setAdminStatus("Global message cleared.", true);
-}
-
-function adminFindAccounts(query) {
-    const accounts = getAccounts();
-    const q = String(query || "").trim().toLowerCase();
-    return Object.keys(accounts)
-        .map(k => accounts[k])
-        .filter(a => !q || String(a.username || "").toLowerCase().includes(q))
-        .sort((a,b) => String(a.username).localeCompare(String(b.username)));
-}
-
-function adminSearchPlayers() {
-    if (!requireAdmin()) return;
-    const input = document.getElementById("admin-player-search");
-    const box = document.getElementById("admin-player-results");
-    if (!box) return;
-    const found = adminFindAccounts(input ? input.value : "");
-    if (!found.length) {
-        box.innerHTML = "<p>No players found.</p>";
-        return;
-    }
-    box.innerHTML = found.map(adminPlayerCardHTML).join("");
-}
-
-function adminPlayerCardHTML(player) {
-    ensureBadgeData(player);
-    const banned = !!player.banned;
-    const badges = badgeHTML(player);
-    return '<div class="admin-player-card">' +
-        '<div class="admin-player-info">' +
-        '<strong>' + escapeHTML(player.username) + '</strong>' +
-        '<div class="player-badges">' + badges + '</div>' +
-        '<div>Coins: <strong>' + Number(player.coins || 0) + '</strong></div>' +
-        '<div>Status: <strong>' + (banned ? "BANNED" : "ACTIVE") + '</strong></div>' +
-        '</div>' +
-        '<div class="admin-player-actions">' +
-        '<button class="small-btn" onclick="adminGiveBadgeTo(' + JSON.stringify(player.username) + ')">GIVE BADGE</button>' +
-        '<button class="small-btn" onclick="adminGiveCoinsTo(' + JSON.stringify(player.username) + ')">GIVE COINS</button>' +
-        (banned
-            ? '<button class="friend-btn accept" onclick="adminUnbanPlayer(' + JSON.stringify(player.username) + ')">UNBAN</button>'
-            : '<button class="friend-btn decline" onclick="adminBanPlayer(' + JSON.stringify(player.username) + ')">BAN</button>') +
-        '</div></div>';
-}
-
-function adminGiveBadge() {
-    if (!requireAdmin()) return;
-    const username = (document.getElementById("admin-badge-user")?.value || "").trim();
-    const badge = document.getElementById("admin-badge-type")?.value;
-    adminGiveBadgeTo(username, badge);
-}
-
-function adminGiveBadgeTo(username, forcedBadge) {
-    if (!requireAdmin()) return;
-    const accounts = getAccounts();
-    const key = String(username || "").trim().toLowerCase();
-    if (!accounts[key]) {
-        setAdminStatus("That player does not exist.", false);
-        return;
-    }
-    const badge = forcedBadge || document.getElementById("admin-badge-type")?.value;
-    if (!["player","admin","veteran"].includes(badge)) {
-        setAdminStatus("Invalid badge.", false);
-        return;
-    }
-    ensureBadgeData(accounts[key]);
-    if (!accounts[key].badges.includes(badge)) accounts[key].badges.push(badge);
-    saveAccounts(accounts);
-    setAdminStatus("Gave " + badge.toUpperCase() + " badge to " + accounts[key].username + ".", true);
-    adminSearchPlayers();
-    updateFriends();
-}
-
-function adminGiveCoins() {
-    if (!requireAdmin()) return;
-    const username = (document.getElementById("admin-coins-user")?.value || "").trim();
-    const amount = Number(document.getElementById("admin-coins-amount")?.value);
-    adminGiveCoinsTo(username, amount);
-}
-
-function adminGiveCoinsTo(username, forcedAmount) {
-    if (!requireAdmin()) return;
-    const accounts = getAccounts();
-    const key = String(username || "").trim().toLowerCase();
-    const amount = Number(forcedAmount ?? document.getElementById("admin-coins-amount")?.value);
-    if (!accounts[key]) {
-        setAdminStatus("That player does not exist.", false);
-        return;
-    }
-    if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
-        setAdminStatus("Enter a whole number of coins greater than 0.", false);
-        return;
-    }
-    accounts[key].coins = Number(accounts[key].coins || 0) + amount;
-    saveAccounts(accounts);
-    setAdminStatus("Gave " + amount + " Splad Coins to " + accounts[key].username + ".", true);
-    adminSearchPlayers();
-    updateShopCoins();
-}
-
-function adminBanPlayer(username) {
-    if (!requireAdmin()) return;
-    const current = localStorage.getItem("spladpad_current_user");
-    const key = String(username || "").toLowerCase();
-    if (key === current) {
-        setAdminStatus("You cannot ban the account you are currently using.", false);
-        return;
-    }
-    const accounts = getAccounts();
-    if (!accounts[key]) {
-        setAdminStatus("That player does not exist.", false);
-        return;
-    }
-    const reason = prompt("Ban reason (optional):", "Banned by an administrator.") || "Banned by an administrator.";
-    accounts[key].banned = true;
-    accounts[key].banReason = reason;
-    accounts[key].bannedAt = Date.now();
-    saveAccounts(accounts);
-    setAdminStatus(accounts[key].username + " has been banned.", true);
-    adminSearchPlayers();
-}
-
-function adminUnbanPlayer(username) {
-    if (!requireAdmin()) return;
-    const accounts = getAccounts();
-    const key = String(username || "").toLowerCase();
-    if (!accounts[key]) {
-        setAdminStatus("That player does not exist.", false);
-        return;
-    }
-    accounts[key].banned = false;
-    accounts[key].banReason = "";
-    accounts[key].bannedAt = null;
-    saveAccounts(accounts);
-    setAdminStatus(accounts[key].username + " has been unbanned.", true);
-    adminSearchPlayers();
-}
-
-function openAdminPanel() {
-    if (!requireAdmin()) return;
-    const msg = document.getElementById("admin-global-message");
-    if (msg) msg.value = getGlobalMessage();
-    updateAdminAccess();
-}
-
-function enforceBanOnLogin() {
-    const current = localStorage.getItem("spladpad_current_user");
-    if (!current) return false;
-    const accounts = getAccounts();
-    const account = accounts[current];
-    if (account && account.banned) {
-        const reason = account.banReason ? "\nReason: " + account.banReason : "";
-        localStorage.removeItem("spladpad_current_user");
-        alert("This account is banned from Spladpad." + reason);
-        return true;
-    }
+function requireAdmin(){
+  const account=currentAccount();
+  if(!hasAdminBadge(account)){
+    alert("You need the ADMIN badge to use the Admin Panel.");
+    if(typeof showPageByName==='function') showPageByName("home");
     return false;
+  }
+  return true;
 }
-
-/* Add the admin gate to page navigation. */
-const _spladpadOriginalShowPage = window.showPage;
-window.showPage = function(page, clickedItem) {
-    if (page === "admin" && !requireAdmin()) return;
-    return _spladpadOriginalShowPage.apply(this, arguments);
-};
-
-/* Keep the global banner and admin access current. */
-window.addEventListener("storage", function(e) {
-    if (e.key === "spladpad_global_message") renderGlobalMessage();
-    if (e.key === "spladpad_accounts" || e.key === "spladpad_current_user") {
-        updateAdminAccess();
-        renderGlobalMessage();
-    }
-});
-
-document.addEventListener("DOMContentLoaded", function() {
-    enforceBanOnLogin();
-    refreshAllBadgeData();
-    updateAdminAccess();
-    renderGlobalMessage();
-});
+function setAdminStatus(message,good){
+  const el=document.getElementById("new-admin-status");
+  if(el){el.textContent=message||"";el.style.color=good?"#16713b":"#a12626";}
+}
 </script>
 
 <script>
@@ -4351,85 +4045,71 @@ refreshAllBadgeData();
 </div>
 
 <style>
-#admin-floating-button{position:fixed;right:18px;bottom:18px;z-index:99998;display:none;border:2px solid #ffd84d;background:#173d62;color:#fff;border-radius:999px;padding:11px 16px;font-weight:900;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.28)}
-#admin-overlay{position:fixed;inset:0;z-index:99999;display:none;background:rgba(4,24,45,.72);padding:28px;box-sizing:border-box;overflow-y:auto}
-#admin-modal{width:min(900px,100%);margin:0 auto;background:#dff2ff;border:3px solid #167cc1;border-radius:12px;box-shadow:0 12px 45px rgba(0,0,0,.38);padding:20px;box-sizing:border-box;color:#123d60}
-#admin-modal-header{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #8fc8e8;padding-bottom:12px}
-#admin-modal-header h2{margin:0} #admin-close{border:0;background:#173d62;color:#fff;border-radius:7px;padding:9px 13px;font-weight:900;cursor:pointer}
-.admin-modal-section{margin-top:16px;padding:15px;background:#eff9ff;border:1px solid #9bcbea;border-radius:9px}
-.admin-modal-section h3{margin:0 0 10px}.admin-modal-row{display:flex;gap:8px;flex-wrap:wrap}
-.admin-modal-row input,.admin-modal-row select,.admin-modal-row textarea{flex:1 1 180px;box-sizing:border-box}
-.admin-modal-row textarea{min-height:75px;padding:9px;border:1px solid #72b8df;border-radius:6px;font:inherit}
-.admin-modal-row input,.admin-modal-row select{padding:9px;border:1px solid #72b8df;border-radius:6px;background:#fff}
-.admin-modal-action{border:0;border-radius:6px;padding:9px 12px;background:#117cc4;color:#fff;font-weight:900;cursor:pointer}
-.admin-modal-action.danger{background:#b52b2b}.admin-modal-action.good{background:#237a45}
-#admin-modal-status{margin-top:12px;min-height:20px;font-weight:800}
-
-/* =========================================
-   SPLADPAD.BUILD — ORIGINAL BUILD STUDIO
-   ========================================= */
-.build-studio-wrap{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 90px);min-height:620px}
-.build-topbar{display:flex;align-items:center;gap:12px;background:#071a31;border:2px solid #1688e8;border-radius:12px;padding:10px 14px;box-shadow:0 8px 25px rgba(0,0,0,.25)}
-.build-brand{font-weight:900;font-size:22px;letter-spacing:.5px;color:#fff;margin-right:auto}.build-brand span{color:#28a8ff}
-.build-toolbar{display:flex;flex-wrap:wrap;gap:7px}.build-tool{border:1px solid #237fc4;background:#0c3155;color:#fff;border-radius:7px;padding:7px 10px;font-weight:800;cursor:pointer}.build-tool:hover{background:#125184}.build-tool.active{background:#1688e8}
-.build-main{display:grid;grid-template-columns:210px minmax(420px,1fr) 250px;gap:12px;min-height:0;flex:1}.build-panel{background:#071a31;border:2px solid #145b92;border-radius:12px;overflow:auto;padding:12px}.build-panel h3{margin:0 0 10px;color:#fff;font-size:15px}.build-section{margin-bottom:16px}.build-list{display:grid;gap:7px}.build-item{background:#0b2948;border:1px solid #206797;color:#fff;border-radius:7px;padding:8px;cursor:pointer;font-weight:700;text-align:left}.build-item:hover{background:#10446f}.build-item small{display:block;color:#8ed5ff;font-weight:500;margin-top:2px}
-.build-workspace{position:relative;min-width:0;min-height:0;background:#08203a;border:2px solid #1688e8;border-radius:12px;overflow:hidden}.build-canvas{width:100%;height:100%;display:block;background:linear-gradient(#dff4ff,#b9e3f7)}.build-status{position:absolute;left:10px;bottom:10px;background:rgba(4,18,34,.86);color:#fff;border:1px solid #3b9fe5;border-radius:7px;padding:6px 9px;font-size:12px}.build-help{position:absolute;right:10px;bottom:10px;background:rgba(4,18,34,.86);color:#bfe7ff;border:1px solid #3b9fe5;border-radius:7px;padding:6px 9px;font-size:11px}
-.build-prop{display:grid;grid-template-columns:1fr 1fr;gap:7px}.build-prop label{font-size:11px;color:#9bdcff}.build-prop input,.build-prop select,.build-script textarea{width:100%;box-sizing:border-box;background:#061426;border:1px solid #267db5;color:#fff;border-radius:6px;padding:7px}.build-prop .wide{grid-column:1/-1}.build-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}.build-action{border:0;background:#1688e8;color:#fff;border-radius:7px;padding:8px;font-weight:900;cursor:pointer}.build-action.danger{background:#9d3030}.build-action.secondary{background:#14527d}
-.build-worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}.build-world-card{background:#08213c;border:2px solid #196ea8;border-radius:10px;overflow:hidden}.build-thumb{width:100%;height:120px;object-fit:cover;background:#bfe8ff;display:block}.build-world-body{padding:10px}.build-world-title{font-weight:900;color:#fff}.build-world-meta{font-size:11px;color:#8fcdf2;margin:4px 0 9px}.build-world-buttons{display:flex;gap:6px}.build-world-buttons button{flex:1}.build-empty{padding:20px;text-align:center;color:#9acbe8;border:1px dashed #2d719e;border-radius:10px}.build-empty-slot{min-height:210px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#9acbe8;font:inherit}.build-empty-slot:hover{background:#0d2d4e;border-color:#2ba1ee}.build-empty-plus{font-size:54px;line-height:1;color:#28a8ff;font-weight:300;margin-bottom:8px}.build-world-open{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}.build-world-open-hint{font-size:11px;color:#28a8ff;font-weight:900;margin-top:6px}
-.build-modal{position:fixed;inset:0;background:rgba(0,8,18,.78);display:none;align-items:center;justify-content:center;z-index:9999;padding:18px}.build-modal.open{display:flex}.build-modal-card{width:min(700px,96vw);max-height:90vh;overflow:auto;background:#071a31;border:2px solid #1688e8;border-radius:14px;padding:16px;box-shadow:0 20px 70px rgba(0,0,0,.55)}.build-modal-title{font-size:21px;font-weight:900;color:#fff;margin-bottom:12px}.build-script-tabs{display:flex;gap:6px;margin-bottom:8px}.build-script-tab{background:#0c3155;color:#fff;border:1px solid #287fb5;border-radius:6px;padding:7px 12px;font-weight:800;cursor:pointer}.build-script-tab.active{background:#1688e8}.build-script textarea{height:260px;resize:vertical;font-family:monospace;font-size:12px}.build-preview{margin-top:8px;border:1px solid #277fb5;border-radius:7px;background:#fff;height:180px;width:100%}
-@media(max-width:1050px){.build-main{grid-template-columns:170px minmax(300px,1fr)}.build-main>.build-panel:last-child{grid-column:1/-1;max-height:260px}}@media(max-width:700px){.build-main{grid-template-columns:1fr}.build-main>.build-panel{max-height:220px}.build-workspace{min-height:430px}.build-studio-wrap{height:auto}}
+/* RECREATED ADMIN PANEL */
+#new-admin-button{position:fixed;right:18px;bottom:18px;z-index:99998;display:none;border:2px solid #ffd84d;background:#173d62;color:#fff;border-radius:9px;padding:11px 16px;font-weight:900;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.28)}
+#new-admin-overlay{position:fixed;inset:0;z-index:99999;display:none;background:rgba(4,24,45,.74);padding:28px;box-sizing:border-box;overflow-y:auto}
+#new-admin-panel{width:min(920px,100%);margin:0 auto;background:#dff2ff;border:3px solid #167cc1;border-radius:14px;box-shadow:0 12px 45px rgba(0,0,0,.38);padding:20px;box-sizing:border-box;color:#123d60}
+#new-admin-header{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:2px solid #8fc8e8;padding-bottom:12px}
+#new-admin-header h2{margin:0;font-size:25px}
+.new-admin-close{border:0;background:#173d62;color:#fff;border-radius:7px;padding:9px 13px;font-weight:900;cursor:pointer}
+.new-admin-section{margin-top:16px;padding:15px;background:#eff9ff;border:1px solid #9bcbea;border-radius:9px}
+.new-admin-section h3{margin:0 0 10px}.new-admin-row{display:flex;gap:8px;flex-wrap:wrap}.new-admin-row>*{flex:1 1 180px;box-sizing:border-box}
+.new-admin-row input,.new-admin-row select,.new-admin-row textarea{padding:9px;border:1px solid #72b8df;border-radius:6px;background:#fff;font:inherit}.new-admin-row textarea{min-height:75px}
+.new-admin-action{border:0;border-radius:6px;padding:9px 12px;background:#117cc4;color:#fff;font-weight:900;cursor:pointer}.new-admin-action.danger{background:#b52b2b}.new-admin-action.good{background:#237a45}
+#new-admin-status{margin-top:12px;min-height:20px;font-weight:800}
 </style>
-<button id="admin-floating-button" type="button" onclick="openAdminModal()">ADMIN PANEL</button>
-<div id="admin-overlay" onclick="if(event.target===this)closeAdminModal()">
- <div id="admin-modal">
-  <div id="admin-modal-header"><h2>ADMIN PANEL</h2><button id="admin-close" onclick="closeAdminModal()">CLOSE</button></div>
-  <p><strong>Admin access detected.</strong> These controls are available because this account has the ADMIN badge.</p>
-  <div class="admin-modal-section"><h3>GLOBAL MESSAGE</h3><div class="admin-modal-row">
-   <textarea id="modal-global-message" placeholder="Message everyone on Spladpad..."></textarea>
-   <button class="admin-modal-action" onclick="modalPostGlobalMessage()">POST MESSAGE</button>
-   <button class="admin-modal-action danger" onclick="modalClearGlobalMessage()">CLEAR</button>
-  </div></div>
-  <div class="admin-modal-section"><h3>PLAYER SEARCH</h3><div class="admin-modal-row">
-   <input id="modal-player-search" placeholder="Search username..." onkeydown="if(event.key==='Enter')modalSearchPlayers()">
-   <button class="admin-modal-action" onclick="modalSearchPlayers()">SEARCH</button>
-  </div><div id="modal-player-results" class="admin-results"></div></div>
-  <div class="admin-modal-section"><h3>GIVE BADGE</h3><div class="admin-modal-row">
-   <input id="modal-badge-user" placeholder="Username">
-   <select id="modal-badge-type"><option value="player">PLAYER</option><option value="admin">ADMIN</option><option value="veteran">VETERAN</option></select>
-   <button class="admin-modal-action" onclick="modalGiveBadge()">GIVE BADGE</button>
-  </div></div>
-  <div class="admin-modal-section"><h3>GIVE SPLAD COINS</h3><div class="admin-modal-row">
-   <input id="modal-coins-user" placeholder="Username"><input id="modal-coins-amount" type="number" min="1" step="1" placeholder="Amount">
-   <button class="admin-modal-action" onclick="modalGiveCoins()">GIVE COINS</button>
-  </div></div>
-  <div class="admin-modal-section"><h3>BAN / UNBAN PLAYER</h3><div class="admin-modal-row">
-   <input id="modal-ban-user" placeholder="Username"><button class="admin-modal-action danger" onclick="modalBanPlayer()">BAN PLAYER</button>
-   <button class="admin-modal-action good" onclick="modalUnbanPlayer()">UNBAN PLAYER</button>
-  </div></div>
-  <div id="admin-modal-status"></div>
- </div>
+<button id="new-admin-button" type="button" onclick="openNewAdminPanel()">ADMIN PANEL</button>
+<div id="new-admin-overlay" onclick="if(event.target===this)closeNewAdminPanel()">
+  <div id="new-admin-panel">
+    <div id="new-admin-header"><h2>ADMIN PANEL</h2><button class="new-admin-close" type="button" onclick="closeNewAdminPanel()">CLOSE</button></div>
+    <p>Admin controls are available to accounts with the ADMIN badge.</p>
+
+    <div class="new-admin-section"><h3>GLOBAL MESSAGE</h3><div class="new-admin-row">
+      <textarea id="new-admin-message" placeholder="Message everyone on Spladpad..."></textarea>
+      <button class="new-admin-action" type="button" onclick="newAdminPostMessage()">POST MESSAGE</button>
+      <button class="new-admin-action danger" type="button" onclick="newAdminClearMessage()">CLEAR</button>
+    </div></div>
+
+    <div class="new-admin-section"><h3>PLAYER SEARCH</h3><div class="new-admin-row">
+      <input id="new-admin-search" placeholder="Search username..." onkeydown="if(event.key==='Enter')newAdminSearch()">
+      <button class="new-admin-action" type="button" onclick="newAdminSearch()">SEARCH</button>
+    </div><div id="new-admin-results" class="admin-results"></div></div>
+
+    <div class="new-admin-section"><h3>GIVE BADGE</h3><div class="new-admin-row">
+      <input id="new-admin-badge-user" placeholder="Username">
+      <select id="new-admin-badge-type"><option value="player">PLAYER</option><option value="admin">ADMIN</option><option value="veteran">VETERAN</option></select>
+      <button class="new-admin-action" type="button" onclick="newAdminGiveBadge()">GIVE BADGE</button>
+    </div></div>
+
+    <div class="new-admin-section"><h3>GIVE SPLAD COINS</h3><div class="new-admin-row">
+      <input id="new-admin-coins-user" placeholder="Username"><input id="new-admin-coins-amount" type="number" min="1" step="1" placeholder="Amount">
+      <button class="new-admin-action" type="button" onclick="newAdminGiveCoins()">GIVE COINS</button>
+    </div></div>
+
+    <div class="new-admin-section"><h3>BAN / UNBAN PLAYER</h3><div class="new-admin-row">
+      <input id="new-admin-ban-user" placeholder="Username"><button class="new-admin-action danger" type="button" onclick="newAdminBan()">BAN PLAYER</button><button class="new-admin-action good" type="button" onclick="newAdminUnban()">UNBAN PLAYER</button>
+    </div></div>
+    <div id="new-admin-status"></div>
+  </div>
 </div>
 <script>
 (function(){
- function acct(){const k=localStorage.getItem("spladpad_current_user"),a=getAccounts();return k&&a[k]?a[k]:null}
- function allowed(){const a=acct();if(!a)return false;const n=String(a.username||"").toLowerCase();return n==="landon"||n==="spladpad"||n==="landon_pierce"||(typeof hasAdminBadge==="function"&&hasAdminBadge(a))}
- window.updateAdminFloatingButton=function(){const b=document.getElementById("admin-floating-button");if(!b)return;const show=allowed();b.style.display=show?"block":"none";if(!show)closeAdminModal()}
- window.openAdminModal=function(){if(!allowed()){alert("You need the ADMIN badge to use the Admin Panel.");return}const m=document.getElementById("modal-global-message");if(m)m.value=getGlobalMessage();document.getElementById("admin-overlay").style.display="block";document.body.style.overflow="hidden"}
- window.closeAdminModal=function(){document.getElementById("admin-overlay").style.display="none";document.body.style.overflow=""}
- function gate(){if(!allowed()){closeAdminModal();alert("You need the ADMIN badge to use this panel.");updateAdminFloatingButton();return false}return true}
- function status(t,ok){const e=document.getElementById("admin-modal-status");if(e){e.textContent=t;e.style.color=ok?"#16713b":"#a12626"}}
- window.modalPostGlobalMessage=function(){if(!gate())return;const v=document.getElementById("modal-global-message").value.trim();if(!v)return status("Write a message first.",false);localStorage.setItem("spladpad_global_message",v);if(typeof renderGlobalMessage==="function")renderGlobalMessage();status("Global message posted.",true)}
- window.modalClearGlobalMessage=function(){if(!gate())return;localStorage.removeItem("spladpad_global_message");document.getElementById("modal-global-message").value="";if(typeof renderGlobalMessage==="function")renderGlobalMessage();status("Global message cleared.",true)}
- window.modalSearchPlayers=function(){if(!gate())return;const q=document.getElementById("modal-player-search").value||"",r=adminFindAccounts(q),b=document.getElementById("modal-player-results");b.innerHTML=r.length?r.map(p=>adminPlayerCardHTML(p)).join(""):"<p>No players found.</p>"}
- window.modalGiveBadge=function(){if(!gate())return;adminGiveBadgeTo(document.getElementById("modal-badge-user").value,document.getElementById("modal-badge-type").value);status("Badge action completed.",true)}
- window.modalGiveCoins=function(){if(!gate())return;adminGiveCoinsTo(document.getElementById("modal-coins-user").value,Number(document.getElementById("modal-coins-amount").value));status("Coin action completed.",true)}
- window.modalBanPlayer=function(){if(!gate())return;adminBanPlayer(document.getElementById("modal-ban-user").value);status("Ban action completed.",true)}
- window.modalUnbanPlayer=function(){if(!gate())return;adminUnbanPlayer(document.getElementById("modal-ban-user").value);status("Unban action completed.",true)}
- document.addEventListener("DOMContentLoaded",updateAdminFloatingButton)
- window.addEventListener("storage",function(e){if(e.key==="spladpad_accounts"||e.key==="spladpad_current_user")updateAdminFloatingButton()})
+  function allowed(){return hasAdminBadge(currentAccount())}
+  function gate(){if(!allowed()){closeNewAdminPanel();return false}return true}
+  window.updateAdminFloatingButton=function(){const b=document.getElementById('new-admin-button');if(!b)return;const show=allowed();b.style.display=show?'block':'none';if(!show)closeNewAdminPanel()}
+  window.openNewAdminPanel=function(){if(!gate()){alert('You need the ADMIN badge to use the Admin Panel.');return}const m=document.getElementById('new-admin-message');if(m)m.value=getGlobalMessage();document.getElementById('new-admin-overlay').style.display='block';document.body.style.overflow='hidden'}
+  window.closeNewAdminPanel=function(){const o=document.getElementById('new-admin-overlay');if(o)o.style.display='none';document.body.style.overflow=''}
+  window.newAdminPostMessage=function(){if(!gate())return;const v=document.getElementById('new-admin-message').value.trim();if(!v)return setAdminStatus('Write a message first.',false);localStorage.setItem('spladpad_global_message',v);if(typeof renderGlobalMessage==='function')renderGlobalMessage();setAdminStatus('Global message posted.',true)}
+  window.newAdminClearMessage=function(){if(!gate())return;localStorage.removeItem('spladpad_global_message');document.getElementById('new-admin-message').value='';if(typeof renderGlobalMessage==='function')renderGlobalMessage();setAdminStatus('Global message cleared.',true)}
+  window.newAdminSearch=function(){if(!gate())return;const q=document.getElementById('new-admin-search').value||'',r=adminFindAccounts(q),b=document.getElementById('new-admin-results');b.innerHTML=r.length?r.map(p=>adminPlayerCardHTML(p)).join(''):'<p>No players found.</p>'}
+  window.newAdminGiveBadge=function(){if(!gate())return;adminGiveBadgeTo(document.getElementById('new-admin-badge-user').value,document.getElementById('new-admin-badge-type').value);setAdminStatus('Badge action completed.',true)}
+  window.newAdminGiveCoins=function(){if(!gate())return;adminGiveCoinsTo(document.getElementById('new-admin-coins-user').value,Number(document.getElementById('new-admin-coins-amount').value));setAdminStatus('Coin action completed.',true)}
+  window.newAdminBan=function(){if(!gate())return;adminBanPlayer(document.getElementById('new-admin-ban-user').value);setAdminStatus('Ban action completed.',true)}
+  window.newAdminUnban=function(){if(!gate())return;adminUnbanPlayer(document.getElementById('new-admin-ban-user').value);setAdminStatus('Unban action completed.',true)}
+  document.addEventListener('DOMContentLoaded',updateAdminFloatingButton);
+  window.addEventListener('storage',function(e){if(e.key==='spladpad_accounts'||e.key==='spladpad_current_user')updateAdminFloatingButton()});
 })();
 </script>
-
 
 <script>
 /* SPLADPAD ONLINE BRIDGE
@@ -4837,7 +4517,9 @@ refreshAllBadgeData();
       if(typeof window.spladBuildSave==='function') window.spladBuildSave(false);
     }
   }
-  setInterval(applyPhysics,50);
+  // Physics is simulated in PLAY TEST / published gameplay only.
+  // The Build Studio editor itself keeps the creator's exact placements.
+
 
   function renderPublished(){
     const gamesHome=$('games-home'); if(!gamesHome) return;
@@ -4869,37 +4551,85 @@ refreshAllBadgeData();
     return {x:o.x*scale+40,y:stageH-(o.y+o.h)*scale-50,w:o.w*scale,h:o.h*scale,scale};
   }
   function openPlayTest(w){
-    play.world=JSON.parse(JSON.stringify(w)); play.player={x:80,y:0,vx:0,vy:0}; play.keys={};
-    $('splad-playtest-name').textContent=w.name+' — PLAY TEST'; $('splad-playtest-modal').classList.add('open'); $('splad-playtest-modal').setAttribute('aria-hidden','false');
-    renderPlayWorld(); cancelAnimationFrame(play.raf); play.last=performance.now(); play.raf=requestAnimationFrame(tickPlay);
+    play.world=JSON.parse(JSON.stringify(w));
+    play.physics={};
+    for(const o of play.world.objects||[]) play.physics[o.id]={vx:0,vy:0};
+    const bp=(play.world.objects||[]).find(o=>o.type==='baseplate');
+    const spawn=(play.world.objects||[]).find(o=>o.type==='spawn');
+    const startX=spawn?spawn.x+Math.max(0,(spawn.w-42)/2):80;
+    const groundY=bp?bp.y+bp.h:0;
+    play.player={x:startX,y:groundY,vx:0,vy:0};
+    play.keys={};
+    $('splad-playtest-name').textContent=w.name+' — PLAY TEST';
+    $('splad-playtest-modal').classList.add('open');
+    $('splad-playtest-modal').setAttribute('aria-hidden','false');
+    renderPlayWorld();
+    cancelAnimationFrame(play.raf);
+    play.last=performance.now();
+    play.raf=requestAnimationFrame(tickPlay);
   }
   function renderPlayWorld(){
     const stage=$('splad-playtest-stage'), worldEl=$('splad-playtest-world'); if(!stage||!worldEl||!play.world)return;
     const sw=stage.clientWidth, sh=stage.clientHeight; worldEl.innerHTML='';
     for(const o of play.world.objects||[]){
       const p=ptScreen(o,sw,sh); const d=document.createElement('div'); d.className='splad-pt-object'; d.style.left=p.x+'px'; d.style.top=p.y+'px'; d.style.width=p.w+'px'; d.style.height=p.h+'px';
+      d.dataset.objectId=o.id;
       if(o.type==='tree'){d.className+=' splad-pt-tree'; d.innerHTML='<span class="trunk"></span><span class="leaves"></span>'}
       else if(o.type==='spawn'){d.className+=' splad-pt-spawn'; d.textContent='SPAWN';}
       else if(o.type==='ramp'){d.style.clipPath='polygon(0 100%,100% 100%,100% 0)';d.style.background=o.color}
-      else if(o.type==='sign'){d.style.background=o.color||'#7d4b2a';d.innerHTML='<b style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:900 12px Arial">'+String(o.label||'SIGN').replace(/[&<>"']/g,'')+'</b><i style="position:absolute;left:44%;bottom:-28%;width:12%;height:28%;background:#7a4d2a"></i>'}
+      else if(o.type==='sign'){d.style.background=o.color||'#7d4b2a';d.innerHTML='<b style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:900 12px Arial">'+String(o.label||'SIGN').replace(/[&<>"\']/g,'')+'</b><i style="position:absolute;left:44%;bottom:-28%;width:12%;height:28%;background:#7a4d2a"></i>'}
       else if(o.type==='dodgeball'){d.style.borderRadius='50%';d.style.background='radial-gradient(circle at 30% 25%,#fff 0 18%,#ddd 19% 36%,#999 37% 58%,#333 59% 100%)';d.style.border='3px solid #222'}
       else d.style.background=o.color||'#1688e8';
+      if(o.anchored) d.style.outline='2px solid rgba(255,255,255,.35)';
       worldEl.appendChild(d);
     }
     const pl=$('splad-playtest-player'); const pp=ptScreen({x:play.player.x,y:play.player.y,w:42,h:92},sw,sh); pl.style.left=pp.x+'px';pl.style.top=pp.y+'px';
   }
+  function physicsStep(dt){
+    if(!play.world)return;
+    const objects=play.world.objects||[];
+    const bp=objects.find(o=>o.type==='baseplate');
+    const movable=objects.filter(o=>o.type!=='baseplate' && !o.anchored);
+    const gravity=0.72;
+    for(const o of movable){
+      const v=play.physics[o.id]||(play.physics[o.id]={vx:0,vy:0});
+      v.vy-=gravity*dt;
+      let nextY=o.y+v.vy*dt;
+      let support=null;
+      if(bp && o.x+o.w>bp.x && o.x<bp.x+bp.w && nextY<=bp.y+bp.h && o.y>=bp.y+bp.h-3) support=bp.y+bp.h;
+      for(const other of objects){
+        if(other===o || other.type==='baseplate')continue;
+        if(o.x+o.w<=other.x || o.x>=other.x+other.w)continue;
+        const top=other.y+other.h;
+        if(o.y>=top-3 && nextY<=top) support=Math.max(support===null?-Infinity:support,top);
+      }
+      if(support!==null && support!==-Infinity){o.y=support;if(v.vy<0)v.vy=0;}
+      else o.y=nextY;
+      v.vx*=0.88;
+    }
+  }
   function tickPlay(now){
-    const dt=Math.min(2,(now-play.last)/16.67||1); play.last=now;
-    const k=play.keys; play.player.vx=(k.ArrowLeft||k.a?-3.5:0)+(k.ArrowRight||k.d?3.5:0); play.player.x+=play.player.vx*dt;
-    play.player.vy-=.65*dt; let nextY=play.player.y+play.player.vy*dt; const footW=42,footH=92; let support=0;
+    const dt=Math.min(1.5,(now-play.last)/16.67||1); play.last=now;
+    physicsStep(dt);
+    const k=play.keys;
+    play.player.vx=(k.ArrowLeft||k.a?-3.5:0)+(k.ArrowRight||k.d?3.5:0);
+    play.player.x+=play.player.vx*dt;
+    play.player.vy-=.65*dt;
+    let nextY=play.player.y+play.player.vy*dt;
+    const player={x:play.player.x,y:nextY,w:42,h:92};
+    let support=null;
     for(const o of play.world.objects||[]){
-      if(o.type==='baseplate' || o.anchored){
-        if(play.player.x+footW>o.x&&play.player.x<o.x+o.w){const top=o.y+o.h;if(play.player.y>=top-4&&nextY<=top)support=Math.max(support,top)}
+      if(o.type!=='baseplate' && !o.anchored && !(play.physics[o.id]?.vy===0))continue;
+      if(player.x+player.w>o.x&&player.x<o.x+o.w){
+        const top=o.y+o.h;
+        if(play.player.y>=top-5&&nextY<=top)support=Math.max(support===null?-Infinity:support,top);
       }
     }
-    if(support){play.player.y=support;play.player.vy=0}else{play.player.y=nextY}
-    play.player.x=Math.max(0,Math.min(850,play.player.x)); if(play.player.y<0){play.player.y=0;play.player.vy=0}
-    renderPlayWorld(); play.raf=requestAnimationFrame(tickPlay);
+    if(support!==null&&support!==-Infinity){play.player.y=support;play.player.vy=0}else play.player.y=nextY;
+    play.player.x=Math.max(0,Math.min(850,play.player.x));
+    if(play.player.y<0){play.player.y=0;play.player.vy=0}
+    renderPlayWorld();
+    play.raf=requestAnimationFrame(tickPlay);
   }
   window.spladPlayPublished=function(id){const w=worldById(id);if(w)openPlayTest(w)};
   window.spladClosePlayTest=function(){cancelAnimationFrame(play.raf);$('splad-playtest-modal').classList.remove('open');$('splad-playtest-modal').setAttribute('aria-hidden','true');play.world=null};
@@ -5444,5 +5174,69 @@ refreshAllBadgeData();
 
   // Keep player1 admin badge visible to local badge system.
   document.addEventListener('DOMContentLoaded',function(){ensurePlayer1();if(typeof refreshAllBadgeData==='function')refreshAllBadgeData();if(typeof updateShopCoins==='function')updateShopCoins();addUndoButton();});
+})();
+</script>
+
+
+<!-- SPLADPAD QUALITY FIXES -->
+<script id="spladpad-quality-fixes">
+(function(){
+  const ACCOUNT_KEY='spladpad_accounts';
+  const currentKey=()=>localStorage.getItem('spladpad_current_user');
+  function accounts(){try{return JSON.parse(localStorage.getItem(ACCOUNT_KEY)||'{}')}catch{return {}}}
+  function save(a){localStorage.setItem(ACCOUNT_KEY,JSON.stringify(a));}
+  function autosaveProfile(){
+    const k=currentKey(); if(!k)return;
+    const a=accounts(),u=a[k]; if(!u)return;
+    const bio=document.getElementById('bio-input');
+    if(bio)u.bio=bio.value.trim();
+    save(a);
+  }
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')autosaveProfile()});
+  window.addEventListener('pagehide',autosaveProfile);
+  window.addEventListener('beforeunload',autosaveProfile);
+  window.addEventListener('blur',autosaveProfile);
+
+  // Local shop purchase path fixes the signed-in/shop token problem.
+  window.buyItem=function(item,price){
+    const k=currentKey(); if(!k){alert('Please sign in first.');return;}
+    const a=accounts(),u=a[k]; if(!u){alert('Please sign in first.');return;}
+    if(!Array.isArray(u.inventory))u.inventory=[];
+    if(!u.equippedItems||typeof u.equippedItems!=='object')u.equippedItems={};
+    if(item==='Doge Ball')price=1500;
+    if(u.inventory.includes(item)){
+      if(item==='Blue Hat'){u.equippedItems.hat='Blue Hat';save(a);if(typeof updateInventory==='function')updateInventory();if(typeof renderEquippedAvatars==='function')renderEquippedAvatars();alert('The Spladpad Hat is already owned and is now equipped.');}
+      else alert('You already own '+item+'.');
+      return;
+    }
+    if(Number(u.coins||0)<price){alert("You don't have enough coins!");return;}
+    u.coins=Number(u.coins||0)-price;u.inventory.push(item);
+    if(item==='Blue Hat')u.equippedItems.hat='Blue Hat';
+    save(a);
+    if(typeof updateInventory==='function')updateInventory();
+    if(typeof renderEquippedAvatars==='function')renderEquippedAvatars();
+    if(typeof updateShopCoins==='function')updateShopCoins();
+    if(typeof applyAvatarColor==='function')applyAvatarColor(u.avatarColor||'blue');
+    alert('You bought '+item+'!');
+  };
+
+  // Published games remain in Games until their creator deletes them.
+  const oldDeleteWorld=window.spladBuildDeleteWorld;
+  if(oldDeleteWorld)window.spladBuildDeleteWorld=function(id){oldDeleteWorld.apply(this,arguments);if(typeof window.renderPublished==='function')window.renderPublished();};
+
+  // Published games use the same local physics Play Test and never require a server lobby.
+  window.spladPlayPublished=function(id){
+    try{
+      const ws=JSON.parse(localStorage.getItem('spladpad_build_worlds_v1')||'[]');
+      const w=ws.find(x=>x.id===id); if(!w)return;
+      const modal=document.getElementById('splad-server-modal');if(modal)modal.classList.remove('open');
+      window.__spladCurrentBuildWorldId=id;
+      if(typeof window.spladBuildPlay==='function')return window.spladBuildPlay();
+    }catch(e){console.error(e)}
+  };
+
+  // Remove the large welcome mascot image.
+  const hideMascot=()=>{const m=document.getElementById('welcome-mascot');if(m)m.remove();const card=document.querySelector('.welcome-mascot-card');if(card)card.remove();};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',hideMascot);else hideMascot();
 })();
 </script>
